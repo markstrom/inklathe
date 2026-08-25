@@ -561,7 +561,6 @@ function setPreviewCompare(comparing) {
   previewCompare.dataset.tooltip = comparing
     ? "Hide original comparison (C)"
     : "Compare with original (C)";
-  if (!comparing) previewZoom.classList.remove("pointer-inside");
 }
 
 function setPreviewZoom(zoomed) {
