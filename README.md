@@ -27,7 +27,7 @@ workers can be installed separately on the same server.
 - Reuse cached normalization, scaling, background, and print-treatment stages
 - Queue additional Process or Alt-Process runs while the single image worker is busy
 - Keep storage below a configurable ceiling by evicting cache files before old jobs
-- Name downloads with sortable five-character Base62 timestamps
+- Name downloads with sortable seven-character Base62 millisecond timestamps
 
 ## Processing order
 
@@ -345,8 +345,9 @@ until storage cleanup removes their job directory, but the current UI has no dis
 history browser for reopening them.
 
 Downloads keep the original safe filename stem and append
-`Base62(seconds since 2026-01-01 UTC)`, always exactly five characters. For example:
-`logo-00A1z.png`.
+`Base62(milliseconds since 2026-01-01 UTC)`, always exactly seven characters. For
+example: `logo-00A1b2C.png`. If several jobs arrive within the same millisecond, the
+server advances the suffix by one so their names remain unique and sortable.
 
 ## Development
 
