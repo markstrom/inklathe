@@ -51,6 +51,8 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "Remove ${source.file.name} from recent images?" in script.text
     assert 'const favoriteStorageKey = "inklathe-favorite-presets"' in script.text
     assert "function randomizePrintTreatment()" in script.text
+    assert "function syncUpscaleControls()" in script.text
+    assert "scaleSelect.disabled = disabled" in script.text
     assert '"upscale",' in script.text
     assert '"seed",' in script.text
 
@@ -142,6 +144,18 @@ def test_job_rejects_projected_upscale_above_pixel_limit(tmp_path) -> None:
     assert "logo.png would become 64×64" in detail
     assert "at 2×" in detail
     assert "Choose a lower scale or no upscaling" in detail
+
+
+def test_job_normalizes_unused_scale_when_upscaling_is_none(tmp_path) -> None:
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={"upscale": "none", "scale": 4},
+        )
+
+    assert response.status_code == 202
+    assert response.json()["settings"]["scale"] == 1
 
 
 def test_local_bitmap_textures_are_discovered(tmp_path) -> None:

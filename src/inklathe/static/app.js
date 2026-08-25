@@ -168,6 +168,7 @@ function applyFavorite(favorite) {
       ? false
       : !setFavoriteControl(name, favorite.settings[name])
   ));
+  syncUpscaleControls();
   wearSelect.disabled = textureSelect.value === "none";
   if (unavailable.length > 0) {
     window.alert(`Some saved settings are not currently available: ${unavailable.join(", ")}.`);
@@ -743,6 +744,17 @@ clearSourceSelection.addEventListener("click", () => {
 const wearSelect = document.querySelector("#wear");
 const textureSelect = document.querySelector("#texture");
 const halftoneSelect = document.querySelector("#halftone");
+const upscaleSelect = document.querySelector("#upscale");
+const scaleSelect = document.querySelector("#scale");
+
+function syncUpscaleControls() {
+  const disabled = upscaleSelect.value === "none";
+  scaleSelect.disabled = disabled;
+  scaleSelect.title = disabled ? "Scale is not used when upscaling is None" : "";
+}
+
+upscaleSelect.addEventListener("change", syncUpscaleControls);
+syncUpscaleControls();
 textureSelect.addEventListener("change", () => {
   wearSelect.disabled = textureSelect.value === "none";
 });
@@ -891,6 +903,7 @@ async function loadCapabilities({ refresh = false } = {}) {
   if (ai.disabled && form.elements.namedItem("upscale").value === "ai") {
     form.elements.namedItem("upscale").value = "lanczos";
   }
+  syncUpscaleControls();
   if (lucida.disabled && form.elements.namedItem("background").value === "lucida") {
     form.elements.namedItem("background").value = "threshold";
   }

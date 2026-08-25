@@ -158,7 +158,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         options = ProcessOptions(
             background=background,
             upscale=upscale,
-            scale=scale,
+            scale=1 if upscale == "none" else scale,
             grunge=grunge,
             seed=seed,
             texture=texture,

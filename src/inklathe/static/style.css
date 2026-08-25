@@ -128,6 +128,7 @@ form, .status, .results { border: 1px solid var(--line); background: var(--surfa
 .controls { display: grid; grid-template-columns: 1fr .45fr 1fr 1.05fr 1.05fr 1.35fr .65fr; gap: 10px; margin: 0; }
 label { display: grid; gap: 4px; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }
 select, input[type="number"], input[type="text"] { width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 0; background: var(--input); color: var(--paper); padding: 8px; }
+select:disabled { opacity: .45; cursor: not-allowed; }
 button, .button { border: 0; border-radius: 0; background: var(--acid); color: var(--on-acid); padding: 11px 18px; font: 800 .8rem Arial, sans-serif; text-transform: uppercase; cursor: pointer; text-decoration: none; }
 button:disabled { opacity: .45; cursor: wait; }
 .button.secondary { background: var(--paper); }

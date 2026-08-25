@@ -51,6 +51,8 @@ The built-in and external choices are deliberately separate:
 | Background | Monochrome cutout | Built-in Otsu-based light-background removal |
 | Background | Lucida AI | Calls a separately installed Lucida CLI and model |
 
+Scale is disabled and ignored when Upscaling is set to None.
+
 ## Quick start
 
 InkLathe requires Python 3.12 or newer.
