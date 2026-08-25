@@ -40,6 +40,7 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "Pattern variation" in response.text
     assert "Wear seed" not in response.text
     assert 'id="next-variation"' in response.text
+    assert "— not configured" in script.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text

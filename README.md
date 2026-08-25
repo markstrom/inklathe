@@ -4,54 +4,53 @@
 
 `restore / isolate / upscale / distress`
 
-InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
+InkLathe is a self-hosted image workshop for preparing black-and-white logos,
+illustrations, and print artwork. The built-in workflow runs locally. Optional AI
+workers can be installed separately on the same server.
 
 ![InkLathe showing two source images and four Worn results made with different scanned wear masks](assets/screenshots/inklathe-wear-showcase.png)
 
-## Initial scope
+## Current features
 
-- Upload one or multiple images
-- Preview and compare results
-- AI-based image upscaling
-- AI-based background removal
-- Optional scanned halftone and engraved print treatments
-- Reproducible print wear using locally installed scan masks
-- Download individual PNG files or a batch archive
-- Keep downloads sortable with `original-name-00000.png` style Base62 timestamps
-- Deploy reproducibly on NixOS
+- Process one image or a selected batch from a five-image source tray
+- Use built-in Lanczos scaling or an optional external AI upscaler
+- Keep the source background, make a monochrome cutout, or use optional Lucida AI
+- Screen isolated ink through scanned halftone or engraved patterns
+- Apply licensed, locally installed wear masks at four fixed levels
+- Change the reproducible mask crop and orientation with Pattern variation
+- Save complete processing combinations as browser-local favorites
+- Preview results full-size, zoom and pan, and compare through an original-image lens
+- Navigate previews with buttons or the left and right arrow keys
+- Download or delete individual PNG results
+- Alt-click a delete control to skip its confirmation
+- Reuse cached normalization, scaling, background, and print-treatment stages
+- Keep storage below a configurable ceiling by evicting cache files before old jobs
+- Name downloads with sortable five-character Base62 timestamps
 
-## Model direction
+## Processing order
 
-- **Upscaling:** evaluate UCAN (CVPR 2026) as the first lightweight backend
-- **Background removal:** evaluate Lucida for logo and typography preservation
-- **Future backends:** keep the processing API modular so newer models can be added
+InkLathe always runs the selected stages in this order:
 
-## Current prototype
+1. Normalize the uploaded image.
+2. Upscale it.
+3. Remove or retain its background.
+4. Apply the optional Print treatment.
+5. Apply the optional Wear style and level.
 
-The local MVP currently supports:
+The built-in and external choices are deliberately separate:
 
-- one or multiple PNG, JPEG, or WebP uploads
-- a five-image recent-source tray with selection and active-processing states
-- a monochrome background-removal baseline
-- 2× and 4× Lanczos previews
-- reproducible, print-oriented wear with local bitmap masks
-- five clear wear levels: Clean, Subtle, Worn, Heavy, and Extreme
-- a compact, newest-first result gallery with dimensions, file sizes, and wear values
-- full-size image previews with button and keyboard navigation
-- a 2.5× click-to-zoom preview with pointer-position panning
-- a movable circular original-image lens for pixel-aligned before/after comparison
-- individual PNG downloads from every result card
-- confirmed result deletion from cards or the full-size preview
-- Alt-click deletion without confirmation for faster result cleanup
-- a single-worker job queue suitable for the target server
-- a persistent content-addressed stage cache for normalization, scaling, and background removal
-- a 20 GB storage ceiling that evicts least-recently-used cache files before old jobs
+| Control | Choice | Implementation |
+| --- | --- | --- |
+| Upscaling | None | Leaves the dimensions unchanged |
+| Upscaling | Lanczos preview | Built into InkLathe through Pillow |
+| Upscaling | AI model | Calls an administrator-configured external command |
+| Background | Keep original | Leaves the image background unchanged |
+| Background | Monochrome cutout | Built-in Otsu-based light-background removal |
+| Background | Lucida AI | Calls a separately installed Lucida CLI and model |
 
-Lucida and the selected AI upscaler are exposed as optional worker adapters. They remain disabled in the UI until their commands and model weights are installed.
+## Quick start
 
-## Run the prototype
-
-Requires Python 3.12 or newer.
+InkLathe requires Python 3.12 or newer.
 
 ```bash
 python3 -m venv .venv
@@ -59,44 +58,185 @@ python3 -m venv .venv
 INKLATHE_DATA_DIR=./data .venv/bin/inklathe
 ```
 
-Set `INKLATHE_MAX_DATA_GB` to change the total storage ceiling. When the limit is
-reached, InkLathe cleans down to 90%, evicting cache files before completed jobs.
-The current and queued jobs are always protected. Set it to `0` to disable cleanup.
+Open <http://127.0.0.1:8787>.
 
-### Local print masks
+The normal installation does **not** install Lucida, an AI upscaler, PyTorch, model
+weights, or GPU drivers. Without external workers, use `Lanczos preview` and
+`Monochrome cutout`; both are fully functional local implementations.
+
+## Optional AI workers
+
+InkLathe runs optional workers as child processes. Configure commands with environment
+variables before starting InkLathe. Use absolute paths when running it as a service.
+
+The interface reports an option as `configured` when its environment variable is set.
+This is not a live model-health check: an invalid executable or missing weight file is
+reported when a job tries to use it.
+
+### Background removal: Lucida
+
+[`egeorcun/lucida`](https://github.com/egeorcun/lucida) is a BiRefNet-based background
+remover designed to preserve details such as text, line art, glow, and print designs.
+Its code and model are not part of InkLathe.
+
+Install Lucida in its own environment, following its upstream instructions. One
+possible layout is:
+
+```bash
+git clone https://github.com/egeorcun/lucida /opt/lucida
+python3.12 -m venv /opt/lucida/.venv
+/opt/lucida/.venv/bin/pip install -e /opt/lucida
+```
+
+Download the released weights from
+[`egeorcun/lucida` on Hugging Face](https://huggingface.co/egeorcun/lucida) and put
+them at the path required by that Lucida release. Verify the installation independently:
+
+```bash
+/opt/lucida/.venv/bin/bgr remove input.png -o output.png --model lucida
+```
+
+Then configure only the base CLI command. InkLathe appends
+`remove INPUT -o OUTPUT --model lucida` itself:
+
+```bash
+export INKLATHE_LUCIDA_COMMAND=/opt/lucida/.venv/bin/bgr
+INKLATHE_DATA_DIR=./data .venv/bin/inklathe
+```
+
+The worker must produce a transparent RGBA PNG at the requested output path. Lucida's
+official CLI does this directly.
+
+### Upscaling: command adapter
+
+`AI model` currently means **any external command that follows InkLathe's adapter
+contract**. InkLathe invokes it as:
+
+```text
+COMMAND INPUT_PATH OUTPUT_PATH SCALE
+```
+
+`SCALE` is `2` or `4`. The command must exit successfully and write a PNG to the exact
+`OUTPUT_PATH`. InkLathe does not currently bundle or require UCAN. UCAN remains a
+research candidate, but there is no UCAN-specific adapter in this repository.
+
+For a practical installation, the repository includes
+[`scripts/realesrgan_adapter.sh`](scripts/realesrgan_adapter.sh), which translates the
+contract to the official
+[`realesrgan-ncnn-vulkan`](https://github.com/xinntao/Real-ESRGAN) command-line syntax.
+Install that executable and its model files separately, then configure:
+
+```bash
+chmod +x scripts/realesrgan_adapter.sh
+export INKLATHE_REALESRGAN_BIN=/opt/realesrgan/realesrgan-ncnn-vulkan
+export INKLATHE_REALESRGAN_MODEL_DIR=/opt/realesrgan/models
+export INKLATHE_REALESRGAN_MODEL=realesrgan-x4plus
+export INKLATHE_AI_UPSCALER_COMMAND=/absolute/path/to/inklathe/scripts/realesrgan_adapter.sh
+INKLATHE_DATA_DIR=./data .venv/bin/inklathe
+```
+
+Test the adapter before starting the service:
+
+```bash
+scripts/realesrgan_adapter.sh input.png /tmp/inklathe-upscaled.png 4
+```
+
+AI upscalers may invent or soften details in hard-edged logos. Compare them with the
+built-in Lanczos result before using an output for print.
+
+## Configuration
+
+| Environment variable | Default | Purpose |
+| --- | --- | --- |
+| `INKLATHE_HOST` | `127.0.0.1` | HTTP bind address |
+| `INKLATHE_PORT` | `8787` | HTTP port |
+| `INKLATHE_DATA_DIR` | `./data` | Jobs, previews, archives, cache, and default texture directory |
+| `INKLATHE_TEXTURE_DIR` | `$INKLATHE_DATA_DIR/textures` | Optional private mask directory |
+| `INKLATHE_MAX_UPLOAD_BYTES` | `26214400` | Per-file upload limit |
+| `INKLATHE_MAX_PIXELS` | `40000000` | Maximum decoded source-image pixels |
+| `INKLATHE_MAX_DATA_GB` | `20` | Storage ceiling; use `0` to disable cleanup |
+| `INKLATHE_LUCIDA_COMMAND` | unset | Base Lucida CLI command |
+| `INKLATHE_AI_UPSCALER_COMMAND` | unset | Upscaler command following the three-argument contract |
+
+When the storage ceiling is reached, InkLathe cleans down to 90%, removing
+least-recently-used cache files before completed job directories. Current and queued
+jobs are protected.
+
+The server currently uses one worker thread. This avoids loading multiple large models
+at once on the intended single-user server.
+
+### Reverse proxy and NixOS status
+
+The default bind address accepts connections only from the local machine. Put InkLathe
+behind your existing reverse proxy for remote access, or deliberately set
+`INKLATHE_HOST=0.0.0.0` on a trusted network. InkLathe does not currently provide
+authentication, TLS, a Nix package, or a NixOS module. Those deployment pieces remain
+future work.
+
+## Local print masks
 
 InkLathe can use high-resolution grayscale texture scans without redistributing them.
-Place licensed copies in `$INKLATHE_DATA_DIR/textures` (the default) or set
-`INKLATHE_TEXTURE_DIR` to another private directory. InkLathe recognizes the locally
-installed `Grunge_141XL.jpg`, `Grunge_197XL.jpg`, `Grunge_198XL.jpg`,
-`Grunge_272XL.jpg`, `Grunge_296XL.jpg` through `Grunge_299XL.jpg`,
-`Grunge_306XL.jpg` through `Grunge_311XL.jpg`, `Grunge_313XL.jpg`, and
-`Grunge_327XL.jpg` files.
-Detected masks appear first in the Wear style menu. The app converts dark scanned
-marks into binary transparent ink knockouts, uses one large non-tiled crop, and keeps
-the result reproducible through the Pattern variation control.
+Place licensed copies in `$INKLATHE_DATA_DIR/textures` or set
+`INKLATHE_TEXTURE_DIR` to another private directory.
 
-The optional Print treatment menu recognizes `Texturelabs_Grunge_234XL.jpg`,
-`Texturelabs_Grunge_242XL.jpg`, `Texturelabs_Grunge_246XL.jpg`,
-`Texturelabs_Grunge_283XL.jpg`, `Texturelabs_Grunge_289XL.jpg`,
-`Texturelabs_Grunge_290XL.jpg`, `Texturelabs_Grunge_340XL.jpg`,
-`Texturelabs_Grunge_351XL.jpg`, `Texturelabs_Grunge_354XL.jpg`, and
-`Texturelabs_Grunge_356XL.jpg` in the same directory. These masks screen the isolated
-ink into binary printable dots or engraved lines before the selected wear is applied.
+The currently registered Wear style filenames are:
+
+- `Grunge_141XL.jpg`, `Grunge_197XL.jpg`, and `Grunge_198XL.jpg`
+- `Grunge_272XL.jpg` and `Grunge_296XL.jpg` through `Grunge_299XL.jpg`
+- `Grunge_306XL.jpg` through `Grunge_311XL.jpg`
+- `Grunge_313XL.jpg` and `Grunge_327XL.jpg`
+
+Dark marks in these scans become transparent ink knockouts. InkLathe uses a single
+large, non-tiled crop. Pattern variation changes its crop and orientation while keeping
+the result reproducible.
+
+The currently registered Print treatment filenames are:
+
+- `Texturelabs_Grunge_234XL.jpg`, `Texturelabs_Grunge_242XL.jpg`, and
+  `Texturelabs_Grunge_246XL.jpg`
+- `Texturelabs_Grunge_283XL.jpg`, `Texturelabs_Grunge_289XL.jpg`, and
+  `Texturelabs_Grunge_290XL.jpg`
+- `Texturelabs_Grunge_340XL.jpg`, `Texturelabs_Grunge_351XL.jpg`,
+  `Texturelabs_Grunge_354XL.jpg`, and `Texturelabs_Grunge_356XL.jpg`
+
+These masks screen isolated ink into binary printable dots or engraved lines before
+the selected wear is applied. File discovery, dropdown labels, categories, polarity,
+and wear limits are registered in `src/inklathe/processing.py`; copying an arbitrary
+new JPG into the directory is not enough by itself.
 
 Do not commit third-party texture files unless their license explicitly permits
 redistribution as part of an image-processing application.
 
-Open <http://127.0.0.1:8787>.
+## Favorites, results, and persistence
+
+Favorites contain the complete current processing combination, including Pattern
+variation. They are stored in the browser's local storage for this exact site origin.
+They survive a normal page reload but do not automatically move to another browser,
+hostname, or port.
+
+Uploaded sources, generated results, previews, archives, and cache files are stored on
+disk under `INKLATHE_DATA_DIR`. The current result gallery and in-memory job index are
+not restored after a page reload or server restart yet. Existing files remain on disk
+until storage cleanup removes their job directory, but the current UI has no disk
+history browser for reopening them.
+
+Downloads keep the original safe filename stem and append
+`Base62(seconds since 2026-01-01 UTC)`, always exactly five characters. For example:
+`logo-00A1z.png`.
+
+## Development
 
 Run the checks with:
 
 ```bash
 .venv/bin/ruff check src tests scripts
 .venv/bin/pytest -q
+bash -n scripts/realesrgan_adapter.sh
 ```
 
-The next milestone is packaging the AI workers and benchmarking them on the target NixOS server.
+The next server milestones are persistent job-history indexing, authentication and
+reverse-proxy guidance, and reproducible NixOS packaging for InkLathe plus its optional
+workers.
 
 ## License
 

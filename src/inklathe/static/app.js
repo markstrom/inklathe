@@ -708,8 +708,8 @@ async function loadCapabilities() {
   const ai = document.querySelector("#ai-option");
   lucida.disabled = !health.capabilities.lucida;
   ai.disabled = !health.capabilities.ai_upscaler;
-  lucida.textContent += lucida.disabled ? " — not installed" : " — ready";
-  ai.textContent += ai.disabled ? " — not installed" : " — ready";
+  lucida.textContent += lucida.disabled ? " — not configured" : " — configured";
+  ai.textContent += ai.disabled ? " — not configured" : " — configured";
   const halftones = health.capabilities.halftones || [];
   const halftoneGroups = new Map();
   for (const treatment of halftones) {
