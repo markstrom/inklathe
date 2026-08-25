@@ -23,6 +23,7 @@ uploads/
 outputs/
 jobs/
 tmp/
+work/
 
 # AI model weights
 models/

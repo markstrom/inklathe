@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>InkLathe</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">SELF-HOSTED IMAGE WORKSHOP</p>
+        <h1>Ink<span>Lathe</span></h1>
+        <p>Förädla svartvita märken, illustrationer och tryck — en fil eller en hel batch.</p>
+      </header>
+
+      <form id="job-form">
+        <label class="drop" id="drop-zone">
+          <input id="files" name="files" type="file" accept="image/png,image/jpeg,image/webp" multiple required>
+          <strong>Släpp bilder här</strong>
+          <span>eller klicka för att välja PNG, JPEG eller WebP</span>
+        </label>
+        <div id="input-preview" class="preview-grid"></div>
+
+        <section class="controls">
+          <label>Bakgrund
+            <select name="background" id="background">
+              <option value="threshold">Monokrom friläggning</option>
+              <option value="lucida" id="lucida-option">Lucida AI</option>
+              <option value="none">Behåll</option>
+            </select>
+          </label>
+          <label>Uppskalning
+            <select name="upscale" id="upscale">
+              <option value="lanczos">Lanczos förprov</option>
+              <option value="ai" id="ai-option">AI-modell</option>
+              <option value="none">Ingen</option>
+            </select>
+          </label>
+          <label>Skala
+            <select name="scale">
+              <option value="2">2×</option>
+              <option value="4" selected>4×</option>
+            </select>
+          </label>
+          <label class="range-control">
+            <span class="range-title">Grunge <output id="grunge-value">0 · ingen</output></span>
+            <input name="grunge" id="grunge" type="range" min="0" max="100" value="0">
+            <span class="range-hints"><span>0 ingen</span><span>25 lätt</span><span>60 tydlig</span><span>100 hård</span></span>
+          </label>
+          <label>Slumpfrö
+            <input name="seed" type="number" value="1" min="0" max="2147483647">
+          </label>
+        </section>
+
+        <button type="submit">Bearbeta bilder</button>
+      </form>
+
+      <section id="status" class="status" hidden></section>
+      <section id="results" class="results" hidden>
+        <div class="result-heading">
+          <div>
+            <p class="eyebrow">KÖRHISTORIK</p>
+            <h2>Resultat</h2>
+          </div>
+          <span class="history-note">Nyaste körningen visas först</span>
+        </div>
+        <div id="result-history"></div>
+      </section>
+    </main>
+
+    <dialog id="preview-dialog">
+      <button id="preview-close" class="dialog-close" type="button" aria-label="Stäng förhandsvisning">×</button>
+      <img id="preview-large" alt="">
+      <div class="dialog-caption">
+        <strong id="preview-title"></strong>
+        <span id="preview-meta"></span>
+      </div>
+    </dialog>
+    <script src="/static/app.js" defer></script>
+  </body>
+</html>
