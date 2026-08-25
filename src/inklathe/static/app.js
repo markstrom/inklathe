@@ -23,6 +23,7 @@ let recentSources = [];
 let selectedSourceIds = new Set();
 let activeBatchIds = [];
 let activeSourceId = null;
+let activePendingItems = [];
 let resultItems = [];
 let currentResultId = null;
 
@@ -118,6 +119,29 @@ function resultCard(item) {
   figure.className = "preview";
   figure.dataset.resultId = item.id;
 
+  if (item.pending) {
+    figure.classList.add("pending");
+    const placeholder = document.createElement("div");
+    placeholder.className = "result-pending";
+    placeholder.setAttribute("role", "status");
+    placeholder.setAttribute("aria-label", `${item.name}: ${item.progress}`);
+    const spinner = document.createElement("span");
+    spinner.className = "result-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    const progress = document.createElement("strong");
+    progress.textContent = item.progress;
+    placeholder.append(spinner, progress);
+
+    const caption = document.createElement("figcaption");
+    const captionName = document.createElement("strong");
+    captionName.textContent = item.name;
+    const metadata = document.createElement("span");
+    metadata.textContent = item.meta;
+    caption.append(captionName, metadata);
+    figure.append(placeholder, caption);
+    return figure;
+  }
+
   const open = document.createElement("button");
   open.className = "preview-open";
   open.type = "button";
@@ -172,6 +196,61 @@ function resultCard(item) {
 function renderResults() {
   resultHistory.replaceChildren(...resultItems.map(resultCard));
   results.hidden = resultItems.length === 0;
+}
+
+function addPendingRun(batch) {
+  const token = Date.now();
+  const wear = Number(wearSlider.value);
+  const settings = `${textureDescription(textureSelect.value)} · Wear ${wear} · ${wearDescription(wear)}`;
+  activePendingItems = batch.map((source, index) => ({
+    id: `pending:${token}:${index}`,
+    pending: true,
+    index,
+    name: source.file.name,
+    progress: index === 0 ? `Uploading 1 of ${batch.length}` : `Queued ${index + 1} of ${batch.length}`,
+    meta: settings,
+  }));
+  resultItems = [...activePendingItems, ...resultItems];
+  renderResults();
+}
+
+function resultFromFile(job, file) {
+  const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
+  const wear = `${textureDescription(job.settings.texture)} · Wear ${job.settings.grunge} · ${wearDescription(job.settings.grunge)}`;
+  return {
+    id: `${job.id}:${file.index}`,
+    pending: false,
+    index: file.index,
+    name: file.name,
+    url: file.download,
+    sourceUrl: file.source,
+    deleteUrl: file.delete,
+    meta: `${size} · ${wear}`,
+  };
+}
+
+function updatePendingRun(job) {
+  const finished = new Map(job.files.map((file) => [file.index, file]));
+  for (const item of activePendingItems) {
+    const file = finished.get(item.index);
+    if (file) {
+      Object.assign(item, resultFromFile(job, file));
+      continue;
+    }
+    item.progress = item.index === job.completed
+      ? `Processing ${item.index + 1} of ${job.total}`
+      : `Queued ${item.index + 1} of ${job.total}`;
+  }
+  renderResults();
+}
+
+function clearUnfinishedPendingItems() {
+  const unfinishedIds = new Set(
+    activePendingItems.filter((item) => item.pending).map((item) => item.id),
+  );
+  resultItems = resultItems.filter((item) => !unfinishedIds.has(item.id));
+  activePendingItems = [];
+  renderResults();
 }
 
 function openResultPreview(id) {
@@ -346,10 +425,11 @@ form.addEventListener("submit", async (event) => {
   }
   activeBatchIds = batch.map((source) => source.id);
   activeSourceId = activeBatchIds[0];
+  addPendingRun(batch);
   setBusy(true);
-  statusBox.hidden = false;
+  statusBox.hidden = true;
   statusBox.className = "status";
-  statusBox.textContent = "Uploading…";
+  statusBox.textContent = "";
   try {
     const body = new FormData(form);
     for (const source of batch) body.append("files", source.file, source.file.name);
@@ -365,7 +445,7 @@ form.addEventListener("submit", async (event) => {
 async function poll(jobId) {
   const response = await fetch(`/api/jobs/${jobId}`);
   const job = await response.json();
-  statusBox.textContent = `Processing ${job.completed} of ${job.total}…`;
+  updatePendingRun(job);
   activeSourceId = activeBatchIds[job.completed] || null;
   renderRecentSources();
   if (job.state === "failed") throw new Error(job.error || "Processing failed");
@@ -373,31 +453,16 @@ async function poll(jobId) {
     setTimeout(() => poll(jobId).catch(showPollError), 500);
     return;
   }
-  renderRun(job);
+  updatePendingRun(job);
+  activePendingItems = [];
   activeBatchIds = [];
   activeSourceId = null;
   statusBox.hidden = true;
   setBusy(false);
 }
 
-function renderRun(job) {
-  const newItems = job.files.map((file) => {
-    const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
-    const wear = `${textureDescription(job.settings.texture)} · Wear ${job.settings.grunge} · ${wearDescription(job.settings.grunge)}`;
-    return {
-      id: `${job.id}:${file.index}`,
-      name: file.name,
-      url: file.download,
-      sourceUrl: file.source,
-      deleteUrl: file.delete,
-      meta: `${size} · ${wear}`,
-    };
-  });
-  resultItems = [...newItems, ...resultItems];
-  renderResults();
-}
-
 function showPollError(error) {
+  clearUnfinishedPendingItems();
   activeBatchIds = [];
   activeSourceId = null;
   statusBox.hidden = false;
