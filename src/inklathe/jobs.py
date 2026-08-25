@@ -248,7 +248,8 @@ class JobStore:
             job.step_label = label
 
         item.cache_hits = []
-        begin_step(steps[0])
+        job.current_step = 0
+        job.step_label = None
         initial_options = ProcessOptions(
             background="none",
             upscale="none",
@@ -268,7 +269,6 @@ class JobStore:
         prepared_key = normalized_key
 
         if options.upscale == "ai":
-            begin_step("Upscaling")
             prepared_key = _cache_key(
                 "upscale-ai-v1",
                 normalized_key,
@@ -282,9 +282,9 @@ class JobStore:
                 lambda destination: run_ai_upscaler(
                     self.settings.ai_upscaler_command, normalized, destination, options.scale
                 ),
+                on_build=lambda: begin_step("Upscaling"),
             )
         elif options.upscale == "lanczos":
-            begin_step("Upscaling")
             prepared_key = _cache_key("upscale-lanczos-v1", normalized_key, options.scale)
 
             def build_lanczos(destination: Path) -> None:
@@ -294,11 +294,14 @@ class JobStore:
                 image.save(destination, "PNG")
 
             prepared = self._cached_stage(
-                item, "upscale", prepared_key, build_lanczos
+                item,
+                "upscale",
+                prepared_key,
+                build_lanczos,
+                on_build=lambda: begin_step("Upscaling"),
             )
 
         if options.background == "lucida":
-            begin_step("Removing background")
             background_key = _cache_key(
                 "background-lucida-v1",
                 prepared_key,
@@ -312,10 +315,10 @@ class JobStore:
                 lambda destination: run_lucida(
                     self.settings.lucida_command, source, destination
                 ),
+                on_build=lambda: begin_step("Removing background"),
             )
             prepared_key = background_key
         elif options.background == "threshold":
-            begin_step("Removing background")
             background_options = ProcessOptions(
                 background="threshold",
                 upscale="none",
@@ -330,11 +333,11 @@ class JobStore:
                 "background",
                 background_key,
                 lambda destination: process_builtin(source, destination, background_options),
+                on_build=lambda: begin_step("Removing background"),
             )
             prepared_key = background_key
 
         if options.halftone != "none":
-            begin_step("Applying print treatment")
             profile = self.halftones.get(options.halftone)
             if profile is None:
                 raise ValueError(f"Halftone file is not installed: {options.halftone}")
@@ -363,12 +366,18 @@ class JobStore:
                 image.save(destination, "PNG", optimize=True)
 
             prepared = self._cached_stage(
-                item, "print-treatment", halftone_key, build_halftone
+                item,
+                "print-treatment",
+                halftone_key,
+                build_halftone,
+                on_build=lambda: begin_step("Applying print treatment"),
             )
             prepared_key = halftone_key
 
         if options.texture != "none" and options.grunge > 0:
             begin_step("Applying wear")
+        elif steps == ["Finalizing"]:
+            begin_step("Finalizing")
         with Image.open(prepared) as opened:
             bitmap = self.bitmap_textures.get(options.texture)
             final = apply_texture(
@@ -393,6 +402,7 @@ class JobStore:
         stage: str,
         key: str,
         build: Callable[[Path], None],
+        on_build: Callable[[], None] | None = None,
     ) -> Path:
         destination = self.settings.data_dir / "cache" / stage / f"{key}.png"
         if destination.exists():
@@ -403,6 +413,8 @@ class JobStore:
         destination.parent.mkdir(parents=True, exist_ok=True)
         temporary = destination.with_name(f".{destination.stem}-{uuid4().hex}.png")
         try:
+            if on_build is not None:
+                on_build()
             build(temporary)
             temporary.replace(destination)
         finally:

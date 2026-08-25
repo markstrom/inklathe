@@ -272,6 +272,10 @@ without delaying work. An older backend that does not report step progress is sh
 Only uploading and actively processing cards use an animated spinner. Runs and later
 batch images that are waiting use a static queue icon.
 
+The step number describes the complete selected pipeline, while the active label is only
+set when that operation actually has to be built. For example, if upscale and background
+are cached, adding print treatment can start directly at `Processing step 3 of 3`.
+
 ## Local print masks
 
 InkLathe can use high-resolution grayscale texture scans without redistributing them.
