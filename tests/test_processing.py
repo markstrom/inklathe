@@ -25,16 +25,16 @@ def test_background_becomes_transparent() -> None:
 
 
 def test_realesrgan_adapter_restores_source_alpha() -> None:
-    source = Image.new("RGBA", (4, 3), (0, 0, 0, 0))
-    source.putpixel((1, 1), (12, 34, 56, 255))
+    source = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    ImageDraw.Draw(source).rectangle((2, 2, 5, 5), fill=(12, 34, 56, 255))
     model_input, alpha = _model_input(source)
 
     assert model_input.mode == "RGB"
     assert model_input.getpixel((0, 0)) == (255, 255, 255)
-    assert model_input.getpixel((1, 1)) == (12, 34, 56)
+    assert model_input.getpixel((3, 3)) == (12, 34, 56)
 
-    model_output = Image.new("RGB", (8, 6), (30, 40, 50))
-    result = _restore_alpha(model_output, alpha, (8, 6))
+    model_output = Image.new("RGB", (16, 16), (30, 40, 50))
+    result = _restore_alpha(model_output, alpha, (16, 16))
     assert result.mode == "RGBA"
     assert result.getchannel("A").getextrema() == (0, 255)
 
