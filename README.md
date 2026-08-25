@@ -174,7 +174,7 @@ The repository provides a Nix package and NixOS module through `flake.nix`. The 
 
 - runs InkLathe as an unprivileged `inklathe` system user;
 - keeps runtime data in `/var/lib/inklathe`;
-- binds the application only to `127.0.0.1:8787`;
+- binds the application only to `127.0.0.1:18787` by default;
 - loads the password with a systemd credential instead of the Nix store;
 - adds a Caddy HTTPS reverse proxy; and
 - opens only ports 80 and 443.
@@ -205,6 +205,7 @@ modules = [
     services.inklathe = {
       enable = true;
       domain = "inklathe.zerolabs.se";
+      port = 18787;
       authUsername = "inklathe";
       authPasswordFile = "/var/lib/secrets/inklathe-auth-password";
       maxDataGB = 20;
@@ -225,7 +226,8 @@ curl -u inklathe https://inklathe.zerolabs.se/api/health
 
 The DNS A record for `inklathe.zerolabs.se` must point to the server, and inbound TCP
 80/443 must reach Caddy. Caddy obtains and renews the TLS certificate automatically.
-Never expose port 8787 through the router or public firewall.
+Never expose the configured internal application port through the router or public
+firewall. Only ports 80 and 443 should reach Caddy.
 
 Install licensed texture files separately under
 `/var/lib/inklathe/textures/{wear,halftone}/`; they are deliberately absent from the

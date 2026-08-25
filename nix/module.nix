@@ -27,7 +27,7 @@ in
 
     port = lib.mkOption {
       type = lib.types.port;
-      default = 8787;
+      default = 18787;
       description = "Loopback port used by InkLathe.";
     };
 
