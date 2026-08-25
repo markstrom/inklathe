@@ -155,6 +155,9 @@ built-in Lanczos result before using an output for print.
 | `INKLATHE_MAX_UPLOAD_BYTES` | `26214400` | Per-file upload limit |
 | `INKLATHE_MAX_PIXELS` | `40000000` | Maximum decoded source-image pixels |
 | `INKLATHE_MAX_DATA_GB` | `20` | Storage ceiling; use `0` to disable cleanup |
+| `INKLATHE_AUTH_USERNAME` | `inklathe` | HTTP Basic authentication username |
+| `INKLATHE_AUTH_PASSWORD_FILE` | unset | Preferred path to a password-only credential file |
+| `INKLATHE_AUTH_PASSWORD` | unset | Direct password fallback; avoid it in production |
 | `INKLATHE_LUCIDA_COMMAND` | unset | Base Lucida CLI command |
 | `INKLATHE_AI_UPSCALER_COMMAND` | unset | Upscaler command following the three-argument contract |
 
@@ -165,13 +168,68 @@ jobs are protected.
 The server currently uses one worker thread. This avoids loading multiple large models
 at once on the intended single-user server.
 
-### Reverse proxy and NixOS status
+## NixOS deployment
 
-The default bind address accepts connections only from the local machine. Put InkLathe
-behind your existing reverse proxy for remote access, or deliberately set
-`INKLATHE_HOST=0.0.0.0` on a trusted network. InkLathe does not currently provide
-authentication, TLS, a Nix package, or a NixOS module. Those deployment pieces remain
-future work.
+The repository provides a Nix package and NixOS module through `flake.nix`. The module:
+
+- runs InkLathe as an unprivileged `inklathe` system user;
+- keeps runtime data in `/var/lib/inklathe`;
+- binds the application only to `127.0.0.1:8787`;
+- loads the password with a systemd credential instead of the Nix store;
+- adds a Caddy HTTPS reverse proxy; and
+- opens only ports 80 and 443.
+
+First create a root-readable password file containing only the chosen password:
+
+```bash
+sudo install -d -m 0700 /var/lib/secrets
+sudoedit /var/lib/secrets/inklathe-auth-password
+sudo chmod 0400 /var/lib/secrets/inklathe-auth-password
+```
+
+Add the local checkout as an input to the server's existing NixOS flake:
+
+```nix
+inputs.inklathe = {
+  url = "path:/etc/nixos/vendor/inklathe";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+Then include and configure its module in the server's `nixosSystem.modules` list:
+
+```nix
+modules = [
+  inputs.inklathe.nixosModules.default
+  {
+    services.inklathe = {
+      enable = true;
+      domain = "inklathe.zerolabs.se";
+      authUsername = "inklathe";
+      authPasswordFile = "/var/lib/secrets/inklathe-auth-password";
+      maxDataGB = 20;
+    };
+  }
+];
+```
+
+The exact location depends on the existing flake's `outputs` structure. After adding
+it, apply and verify the configuration:
+
+```bash
+sudo nixos-rebuild test --flake /etc/nixos#SERVER
+sudo nixos-rebuild switch --flake /etc/nixos#SERVER
+systemctl status inklathe
+curl -u inklathe https://inklathe.zerolabs.se/api/health
+```
+
+The DNS A record for `inklathe.zerolabs.se` must point to the server, and inbound TCP
+80/443 must reach Caddy. Caddy obtains and renews the TLS certificate automatically.
+Never expose port 8787 through the router or public firewall.
+
+Install licensed texture files separately under
+`/var/lib/inklathe/textures/{wear,halftone}/`; they are deliberately absent from the
+Nix package and Git repository.
 
 ## Local print masks
 

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
+import binascii
+import secrets
 from mimetypes import guess_type
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
@@ -26,6 +29,35 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     api.state.settings = settings
     api.state.jobs = store
     api.mount("/static", StaticFiles(directory=PACKAGE_DIR / "static"), name="static")
+
+    @api.middleware("http")
+    async def require_authentication(request: Request, call_next):
+        if settings.auth_password is None:
+            return await call_next(request)
+        authorization = request.headers.get("authorization", "")
+        scheme, _, credentials = authorization.partition(" ")
+        username = ""
+        password = ""
+        if scheme.lower() == "basic" and credentials:
+            try:
+                decoded = base64.b64decode(credentials, validate=True).decode("utf-8")
+                username, separator, password = decoded.partition(":")
+                if not separator:
+                    username = ""
+            except (binascii.Error, UnicodeDecodeError):
+                pass
+        valid_username = secrets.compare_digest(username, settings.auth_username)
+        valid_password = secrets.compare_digest(password, settings.auth_password)
+        if not (valid_username and valid_password):
+            return Response(
+                status_code=401,
+                content="Authentication required",
+                media_type="text/plain",
+                headers={
+                    "WWW-Authenticate": 'Basic realm="InkLathe", charset="UTF-8"'
+                },
+            )
+        return await call_next(request)
 
     @api.get("/", include_in_schema=False)
     def index() -> FileResponse:

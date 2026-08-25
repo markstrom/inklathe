@@ -50,6 +50,46 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert '"seed",' in script.text
 
 
+def test_http_basic_authentication_protects_app_and_api(tmp_path) -> None:
+    settings = Settings(
+        data_dir=tmp_path,
+        auth_username="markstrom",
+        auth_password="correct horse battery staple",
+    )
+    with TestClient(create_app(settings)) as client:
+        denied = client.get("/")
+        denied_api = client.get("/api/health")
+        accepted = client.get("/", auth=("markstrom", "correct horse battery staple"))
+        accepted_api = client.get(
+            "/api/health", auth=("markstrom", "correct horse battery staple")
+        )
+
+    assert denied.status_code == 401
+    assert denied.headers["www-authenticate"] == 'Basic realm="InkLathe", charset="UTF-8"'
+    assert denied_api.status_code == 401
+    assert accepted.status_code == 200
+    assert accepted_api.json()["status"] == "ok"
+
+
+def test_settings_reads_authentication_from_systemd_credentials(
+    tmp_path, monkeypatch
+) -> None:
+    credentials = tmp_path / "credentials"
+    credentials.mkdir()
+    (credentials / "inklathe-auth-password").write_text(
+        "server secret\n", encoding="utf-8"
+    )
+    monkeypatch.delenv("INKLATHE_AUTH_PASSWORD", raising=False)
+    monkeypatch.delenv("INKLATHE_AUTH_PASSWORD_FILE", raising=False)
+    monkeypatch.setenv("CREDENTIALS_DIRECTORY", str(credentials))
+    monkeypatch.setenv("INKLATHE_DATA_DIR", str(tmp_path / "data"))
+
+    settings = Settings.from_env()
+
+    assert settings.auth_username == "inklathe"
+    assert settings.auth_password == "server secret"
+
+
 def test_job_round_trip(tmp_path) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         response = client.post(
