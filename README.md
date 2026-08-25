@@ -242,6 +242,10 @@ enough by itself; add a matching entry to the local catalog.
 Do not commit third-party texture files unless their license explicitly permits
 redistribution as part of an image-processing application.
 
+See [THIRD_PARTY_ASSETS.md](THIRD_PARTY_ASSETS.md) before adding assets or changing
+the repository from private to public. Repository privacy is not a substitute for a
+redistribution license.
+
 ## Favorites, results, and persistence
 
 Favorites contain the complete current processing combination, including Pattern
