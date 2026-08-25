@@ -49,7 +49,7 @@ in
     };
 
     maxDataGB = lib.mkOption {
-      type = lib.types.nonnegativeInt;
+      type = lib.types.ints.unsigned;
       default = 20;
       description = "Maximum runtime storage in GiB; zero disables cleanup.";
     };
