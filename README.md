@@ -269,6 +269,8 @@ the first and last selected operations. If no operation is selected, the single 
 `Finalizing`. Cached stages complete immediately, so polling may visibly jump over them
 without delaying work. An older backend that does not report step progress is shown as
 `Processing` rather than the misleading `Processing step 1 of 1`.
+Only uploading and actively processing cards use an animated spinner. Runs and later
+batch images that are waiting use a static queue icon.
 
 ## Local print masks
 

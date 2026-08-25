@@ -407,16 +407,23 @@ function resultCard(item) {
     placeholder.className = "result-pending";
     placeholder.setAttribute("role", "status");
     placeholder.setAttribute("aria-label", `${item.name}: ${item.progress}`);
-    const spinner = document.createElement("span");
-    spinner.className = "result-spinner";
-    spinner.setAttribute("aria-hidden", "true");
+    const indicator = document.createElement("span");
+    indicator.className = item.waiting ? "result-queue-icon" : "result-spinner";
+    indicator.setAttribute("aria-hidden", "true");
+    if (item.waiting) {
+      indicator.innerHTML = `
+        <svg viewBox="0 0 24 24">
+          <path d="M4 6h16M4 12h16M4 18h10m3-2 3 2-3 2" />
+        </svg>
+      `;
+    }
     const progress = document.createElement("strong");
     progress.textContent = item.progress;
     const progressDetail = document.createElement("span");
     progressDetail.className = "result-progress-detail";
     progressDetail.textContent = item.progressDetail || "";
     progressDetail.hidden = !item.progressDetail;
-    placeholder.append(spinner, progress, progressDetail);
+    placeholder.append(indicator, progress, progressDetail);
 
     const caption = document.createElement("figcaption");
     const captionName = document.createElement("strong");
@@ -510,6 +517,7 @@ function addPendingRun(batch) {
       name: source.file.name,
       progress: index === 0 ? "Uploading" : "Waiting for upload",
       progressDetail: "",
+      waiting: index !== 0,
       meta: settings,
     })),
   };
@@ -553,6 +561,7 @@ function updatePendingRun(run, job) {
     if (job.state === "queued") {
       item.progress = "Waiting in queue";
       item.progressDetail = "";
+      item.waiting = true;
     } else {
       const active = item.index === job.completed;
       const step = Number(job.progress?.step);
@@ -562,6 +571,7 @@ function updatePendingRun(run, job) {
         ? (hasStepProgress ? `Processing step ${step} of ${totalSteps}` : "Processing")
         : `Queued image ${item.index + 1} of ${job.total}`;
       item.progressDetail = active && hasStepProgress ? (job.progress?.label || "") : "";
+      item.waiting = !active;
     }
   }
   renderResults();
