@@ -24,8 +24,25 @@ const previewDownload = document.querySelector("#preview-download");
 const previewDelete = document.querySelector("#preview-delete");
 const previewCompare = document.querySelector("#preview-compare");
 const themeToggle = document.querySelector("#theme-toggle");
+const favoritePresetSelect = document.querySelector("#favorite-preset");
+const saveFavoriteButton = document.querySelector("#save-favorite");
+const deleteFavoriteButton = document.querySelector("#delete-favorite");
+const favoriteDialog = document.querySelector("#favorite-dialog");
+const favoriteNameInput = document.querySelector("#favorite-name");
+const confirmFavoriteButton = document.querySelector("#confirm-favorite");
+const cancelFavoriteButton = document.querySelector("#cancel-favorite");
 
 const themeModes = ["auto", "light", "dark"];
+const favoriteStorageKey = "inklathe-favorite-presets";
+const favoriteSettingNames = [
+  "upscale",
+  "scale",
+  "background",
+  "halftone",
+  "texture",
+  "grunge",
+  "seed",
+];
 
 function savedMode(key, modes, fallback) {
   try {
@@ -69,6 +86,121 @@ themeToggle.addEventListener("click", () => {
 });
 
 applyThemeMode();
+
+function loadFavoritePresets() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(favoriteStorageKey) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((favorite) => (
+      favorite
+      && typeof favorite.id === "string"
+      && typeof favorite.name === "string"
+      && favorite.settings
+      && typeof favorite.settings === "object"
+    ));
+  } catch (_) {
+    return [];
+  }
+}
+
+let favoritePresets = loadFavoritePresets();
+let capabilitiesReady = false;
+
+function storeFavoritePresets() {
+  try {
+    localStorage.setItem(favoriteStorageKey, JSON.stringify(favoritePresets));
+  } catch (_) {
+    window.alert("The favorite could not be saved in this browser.");
+  }
+}
+
+function renderFavoritePresets(selectedId = favoritePresetSelect.value) {
+  const placeholder = document.createElement("option");
+  placeholder.value = "";
+  placeholder.textContent = favoritePresets.length > 0
+    ? "Choose favorite…"
+    : "No favorites saved";
+  favoritePresetSelect.replaceChildren(placeholder);
+  for (const favorite of favoritePresets) {
+    const option = document.createElement("option");
+    option.value = favorite.id;
+    option.textContent = favorite.name;
+    favoritePresetSelect.append(option);
+  }
+  favoritePresetSelect.disabled = !capabilitiesReady || favoritePresets.length === 0;
+  favoritePresetSelect.value = favoritePresets.some(({ id }) => id === selectedId)
+    ? selectedId
+    : "";
+  deleteFavoriteButton.disabled = favoritePresetSelect.value === "";
+}
+
+function currentFavoriteSettings() {
+  return Object.fromEntries(favoriteSettingNames.map((name) => [
+    name,
+    form.elements.namedItem(name).value,
+  ]));
+}
+
+function setFavoriteControl(name, value) {
+  const control = form.elements.namedItem(name);
+  if (!control) return false;
+  if (control instanceof HTMLSelectElement) {
+    const option = [...control.options].find((item) => item.value === String(value));
+    if (!option || option.disabled) return false;
+  }
+  control.value = String(value);
+  return control.value === String(value);
+}
+
+function applyFavorite(favorite) {
+  const unavailable = favoriteSettingNames.filter((name) => (
+    favorite.settings[name] === undefined
+      ? false
+      : !setFavoriteControl(name, favorite.settings[name])
+  ));
+  wearSelect.disabled = textureSelect.value === "none";
+  if (unavailable.length > 0) {
+    window.alert(`Some saved settings are not currently available: ${unavailable.join(", ")}.`);
+  }
+}
+
+function openFavoriteEditor() {
+  const selected = favoritePresets.find(({ id }) => id === favoritePresetSelect.value);
+  favoriteNameInput.value = selected?.name || "";
+  favoriteDialog.showModal();
+  favoriteNameInput.focus();
+  favoriteNameInput.select();
+}
+
+function saveCurrentFavorite() {
+  const selected = favoritePresets.find(({ id }) => id === favoritePresetSelect.value);
+  const name = favoriteNameInput.value.trim();
+  if (!name) return;
+  const sameName = favoritePresets.find((favorite) => (
+    favorite.name.toLocaleLowerCase() === name.toLocaleLowerCase()
+  ));
+  if (sameName && sameName.id !== selected?.id
+      && !window.confirm(`Replace the existing favorite “${sameName.name}”?`)) return;
+  const id = sameName?.id || selected?.id || `favorite-${Date.now().toString(36)}`;
+  const favorite = { id, name, settings: currentFavoriteSettings() };
+  const existingIndex = favoritePresets.findIndex((item) => item.id === id);
+  if (existingIndex >= 0) favoritePresets[existingIndex] = favorite;
+  else favoritePresets.push(favorite);
+  storeFavoritePresets();
+  renderFavoritePresets(id);
+  favoriteDialog.close();
+}
+
+function deleteCurrentFavorite(skipConfirmation = false) {
+  const favorite = favoritePresets.find(({ id }) => id === favoritePresetSelect.value);
+  if (!favorite) return;
+  if (!skipConfirmation && !window.confirm(`Delete the favorite “${favorite.name}”?`)) return;
+  favoritePresets = favoritePresets.filter(({ id }) => id !== favorite.id);
+  storeFavoritePresets();
+  renderFavoritePresets();
+}
+
+renderFavoritePresets();
 
 let recentSources = [];
 let selectedSourceIds = new Set();
@@ -485,6 +617,25 @@ const halftoneSelect = document.querySelector("#halftone");
 textureSelect.addEventListener("change", () => {
   wearSelect.disabled = textureSelect.value === "none";
 });
+favoritePresetSelect.addEventListener("change", () => {
+  const favorite = favoritePresets.find(({ id }) => id === favoritePresetSelect.value);
+  deleteFavoriteButton.disabled = !favorite;
+  if (favorite) applyFavorite(favorite);
+});
+saveFavoriteButton.addEventListener("click", openFavoriteEditor);
+confirmFavoriteButton.addEventListener("click", saveCurrentFavorite);
+cancelFavoriteButton.addEventListener("click", () => favoriteDialog.close());
+favoriteNameInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    saveCurrentFavorite();
+  }
+});
+deleteFavoriteButton.addEventListener("click", (event) => deleteCurrentFavorite(event.altKey));
+document.querySelector(".controls").addEventListener("change", () => {
+  favoritePresetSelect.value = "";
+  deleteFavoriteButton.disabled = true;
+});
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {
   setPreviewZoom(!previewZoom.classList.contains("zoomed"));
@@ -584,6 +735,8 @@ async function loadCapabilities() {
     textureSelect.disabled = true;
     wearSelect.disabled = true;
   }
+  capabilitiesReady = true;
+  renderFavoritePresets();
 }
 
 function setBusy(busy) {

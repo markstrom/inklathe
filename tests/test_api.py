@@ -24,6 +24,9 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert '<html lang="en">' in response.text
     assert 'class="ascii-logo" aria-label="InkLathe"' in response.text
     assert 'id="theme-toggle"' in response.text
+    assert 'id="favorite-preset"' in response.text
+    assert 'id="save-favorite"' in response.text
+    assert 'id="favorite-dialog"' in response.text
     assert 'data-tooltip="Compare with original (C)"' in response.text
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
@@ -37,6 +40,9 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text
+    assert 'const favoriteStorageKey = "inklathe-favorite-presets"' in script.text
+    assert '"upscale",' in script.text
+    assert '"seed",' in script.text
 
 
 def test_job_round_trip(tmp_path) -> None:
