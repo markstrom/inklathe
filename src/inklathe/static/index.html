@@ -16,18 +16,18 @@
 
       <form id="job-form">
         <div class="upload-strip">
-          <label class="drop" id="drop-zone">
-            <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-            <strong>Drop images</strong>
-            <span>or choose files</span>
-          </label>
-          <div class="recent-sources">
+          <div class="recent-sources" id="drop-zone">
+            <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
             <div id="recent-actions" class="recent-actions" hidden>
               <span id="selection-count"></span>
+              <button id="add-images" type="button">Add images</button>
               <button id="select-all-sources" type="button">Select all</button>
               <button id="clear-source-selection" type="button">Clear selection</button>
             </div>
-            <span id="recent-placeholder">Your five latest images appear here</span>
+            <button id="recent-placeholder" class="drop-placeholder" type="button">
+              <strong>Drop images here</strong>
+              <span>or choose files</span>
+            </button>
             <div id="input-preview"></div>
           </div>
         </div>

@@ -5,6 +5,7 @@ const inputPreview = document.querySelector("#input-preview");
 const recentPlaceholder = document.querySelector("#recent-placeholder");
 const recentActions = document.querySelector("#recent-actions");
 const selectionCount = document.querySelector("#selection-count");
+const addImages = document.querySelector("#add-images");
 const selectAllSources = document.querySelector("#select-all-sources");
 const clearSourceSelection = document.querySelector("#clear-source-selection");
 const statusBox = document.querySelector("#status");
@@ -82,8 +83,10 @@ function addRecentSources(files) {
 function renderRecentSources() {
   inputPreview.replaceChildren();
   recentPlaceholder.hidden = recentSources.length > 0;
+  recentPlaceholder.disabled = submitButton.disabled;
   recentActions.hidden = recentSources.length === 0;
   selectionCount.textContent = `${selectedSourceIds.size} of ${recentSources.length} selected`;
+  addImages.disabled = submitButton.disabled;
   selectAllSources.disabled = submitButton.disabled || selectedSourceIds.size === recentSources.length;
   clearSourceSelection.disabled = submitButton.disabled || selectedSourceIds.size === 0;
   for (const source of recentSources) {
@@ -374,6 +377,8 @@ async function deleteResult(id, skipConfirmation = false) {
 }
 
 fileInput.addEventListener("change", () => addRecentSources([...fileInput.files]));
+recentPlaceholder.addEventListener("click", () => fileInput.click());
+addImages.addEventListener("click", () => fileInput.click());
 selectAllSources.addEventListener("click", () => {
   selectedSourceIds = new Set(recentSources.map((source) => source.id));
   renderRecentSources();
