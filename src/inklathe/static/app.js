@@ -2,6 +2,7 @@ const form = document.querySelector("#job-form");
 const fileInput = document.querySelector("#files");
 const dropZone = document.querySelector("#drop-zone");
 const inputPreview = document.querySelector("#input-preview");
+const recentPlaceholder = document.querySelector("#recent-placeholder");
 const statusBox = document.querySelector("#status");
 const results = document.querySelector("#results");
 const resultHistory = document.querySelector("#result-history");
@@ -10,6 +11,17 @@ const previewDialog = document.querySelector("#preview-dialog");
 const previewLarge = document.querySelector("#preview-large");
 const previewTitle = document.querySelector("#preview-title");
 const previewMeta = document.querySelector("#preview-meta");
+const previewPrevious = document.querySelector("#preview-previous");
+const previewNext = document.querySelector("#preview-next");
+const previewDownload = document.querySelector("#preview-download");
+const previewDelete = document.querySelector("#preview-delete");
+
+let recentSources = [];
+let selectedSourceIds = new Set();
+let activeBatchIds = [];
+let activeSourceId = null;
+let resultItems = [];
+let currentResultId = null;
 
 function formatBytes(bytes) {
   if (bytes === null || bytes === undefined) return "";
@@ -25,79 +37,209 @@ function grungeDescription(value) {
   return "heavy";
 }
 
-function openPreview(url, name, meta) {
-  previewLarge.src = url;
-  previewLarge.alt = name;
-  previewTitle.textContent = name;
-  previewMeta.textContent = meta;
-  previewDialog.showModal();
+function sourceId(file) {
+  return `${file.name}:${file.size}:${file.lastModified}`;
 }
 
-function card(url, name, options = {}) {
+function addRecentSources(files) {
+  if (submitButton.disabled) return;
+  const accepted = files.filter((file) => file.type.startsWith("image/"));
+  const incoming = accepted.map((file) => {
+    const id = sourceId(file);
+    const existing = recentSources.find((source) => source.id === id);
+    return existing || { id, file, url: URL.createObjectURL(file) };
+  });
+  const incomingIds = new Set(incoming.map((source) => source.id));
+  const next = [...incoming, ...recentSources.filter((source) => !incomingIds.has(source.id))]
+    .slice(0, 5);
+  const keptIds = new Set(next.map((source) => source.id));
+  for (const source of recentSources) {
+    if (!keptIds.has(source.id)) URL.revokeObjectURL(source.url);
+  }
+  recentSources = next;
+  selectedSourceIds = new Set(incoming.map((source) => source.id).filter((id) => keptIds.has(id)));
+  renderRecentSources();
+  fileInput.value = "";
+}
+
+function renderRecentSources() {
+  inputPreview.replaceChildren();
+  recentPlaceholder.hidden = recentSources.length > 0;
+  for (const source of recentSources) {
+    const figure = document.createElement("figure");
+    figure.className = "source-preview";
+    figure.classList.toggle("selected", selectedSourceIds.has(source.id));
+    figure.classList.toggle("processing", activeSourceId === source.id);
+
+    const select = document.createElement("button");
+    select.type = "button";
+    select.className = "source-select";
+    select.setAttribute("aria-pressed", String(selectedSourceIds.has(source.id)));
+    select.setAttribute("aria-label", `Select ${source.file.name} for processing`);
+    const image = document.createElement("img");
+    image.src = source.url;
+    image.alt = source.file.name;
+    select.append(image);
+    select.addEventListener("click", () => {
+      if (submitButton.disabled) return;
+      if (selectedSourceIds.has(source.id)) selectedSourceIds.delete(source.id);
+      else selectedSourceIds.add(source.id);
+      renderRecentSources();
+    });
+
+    if (activeSourceId === source.id) {
+      const badge = document.createElement("span");
+      badge.className = "processing-badge";
+      badge.textContent = "Processing";
+      select.append(badge);
+    }
+
+    const caption = document.createElement("figcaption");
+    caption.textContent = source.file.name;
+    figure.append(select, caption);
+    inputPreview.append(figure);
+  }
+}
+
+function resultCard(item) {
   const figure = document.createElement("figure");
   figure.className = "preview";
+  figure.dataset.resultId = item.id;
 
-  const previewButton = document.createElement("button");
-  previewButton.className = "preview-open";
-  previewButton.type = "button";
-  previewButton.title = `View ${name} larger`;
+  const open = document.createElement("button");
+  open.className = "preview-open";
+  open.type = "button";
+  open.title = `View ${item.name} larger`;
   const image = document.createElement("img");
-  image.src = url;
-  image.alt = name;
-  previewButton.append(image);
-  previewButton.addEventListener("click", () => openPreview(url, name, options.meta || ""));
+  image.src = item.url;
+  image.alt = item.name;
+  open.append(image);
+  open.addEventListener("click", () => openResultPreview(item.id));
 
   const caption = document.createElement("figcaption");
   const captionHeading = document.createElement("div");
   captionHeading.className = "caption-heading";
   const captionName = document.createElement("strong");
-  captionName.textContent = name;
-  captionHeading.append(captionName);
-  if (options.downloadable) {
-    const download = document.createElement("a");
-    download.className = "download-icon";
-    download.href = url;
-    download.download = name;
-    download.title = `Download ${name}`;
-    download.setAttribute("aria-label", `Download ${name}`);
-    download.innerHTML = `
-      <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" />
-      </svg>
-    `;
-    captionHeading.append(download);
-  }
+  captionName.textContent = item.name;
+  const actions = document.createElement("div");
+  actions.className = "card-actions";
+
+  const download = document.createElement("a");
+  download.className = "card-icon";
+  download.href = item.url;
+  download.download = item.name;
+  download.title = `Download ${item.name}`;
+  download.setAttribute("aria-label", `Download ${item.name}`);
+  download.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" />
+    </svg>
+  `;
+
+  const remove = document.createElement("button");
+  remove.className = "card-icon danger";
+  remove.type = "button";
+  remove.title = `Delete ${item.name}`;
+  remove.setAttribute("aria-label", `Delete ${item.name}`);
+  remove.innerHTML = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6" />
+    </svg>
+  `;
+  remove.addEventListener("click", () => deleteResult(item.id));
+
+  actions.append(download, remove);
+  captionHeading.append(captionName, actions);
   const metadata = document.createElement("span");
-  metadata.textContent = options.meta || "Click the image for a full-size view";
+  metadata.textContent = item.meta;
   caption.append(captionHeading, metadata);
-  figure.append(previewButton, caption);
+  figure.append(open, caption);
   return figure;
 }
 
-function previewFiles() {
-  inputPreview.replaceChildren();
-  for (const file of fileInput.files) {
-    inputPreview.append(
-      card(URL.createObjectURL(file), file.name, { meta: `${formatBytes(file.size)} · original` }),
-    );
-  }
+function renderResults() {
+  resultHistory.replaceChildren(...resultItems.map(resultCard));
+  results.hidden = resultItems.length === 0;
 }
 
-fileInput.addEventListener("change", previewFiles);
+function openResultPreview(id) {
+  currentResultId = id;
+  updateResultPreview();
+  if (!previewDialog.open) previewDialog.showModal();
+}
+
+function updateResultPreview() {
+  const index = resultItems.findIndex((item) => item.id === currentResultId);
+  if (index < 0) return;
+  const item = resultItems[index];
+  previewLarge.src = item.url;
+  previewLarge.alt = item.name;
+  previewTitle.textContent = item.name;
+  previewMeta.textContent = item.meta;
+  previewDownload.href = item.url;
+  previewDownload.download = item.name;
+  previewPrevious.disabled = index === 0;
+  previewNext.disabled = index === resultItems.length - 1;
+}
+
+function moveResultPreview(offset) {
+  const index = resultItems.findIndex((item) => item.id === currentResultId);
+  const nextIndex = index + offset;
+  if (index < 0 || nextIndex < 0 || nextIndex >= resultItems.length) return;
+  currentResultId = resultItems[nextIndex].id;
+  updateResultPreview();
+}
+
+async function deleteResult(id) {
+  const index = resultItems.findIndex((item) => item.id === id);
+  if (index < 0) return;
+  const item = resultItems[index];
+  if (!window.confirm(`Delete ${item.name}? This cannot be undone.`)) return;
+  const response = await fetch(item.deleteUrl, { method: "DELETE" });
+  if (!response.ok) {
+    showPollError(new Error("Could not delete the result"));
+    return;
+  }
+  resultItems.splice(index, 1);
+  renderResults();
+  if (currentResultId !== id) return;
+  if (resultItems.length === 0) {
+    currentResultId = null;
+    previewDialog.close();
+    return;
+  }
+  currentResultId = resultItems[Math.min(index, resultItems.length - 1)].id;
+  updateResultPreview();
+}
+
+fileInput.addEventListener("change", () => addRecentSources([...fileInput.files]));
 const grungeSlider = document.querySelector("#grunge");
 grungeSlider.addEventListener("input", (event) => {
   const value = Number(event.target.value);
   document.querySelector("#grunge-value").textContent = `${value} · ${grungeDescription(value)}`;
 });
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
+previewPrevious.addEventListener("click", () => moveResultPreview(-1));
+previewNext.addEventListener("click", () => moveResultPreview(1));
+previewDelete.addEventListener("click", () => deleteResult(currentResultId));
 previewDialog.addEventListener("click", (event) => {
   if (event.target === previewDialog) previewDialog.close();
+});
+document.addEventListener("keydown", (event) => {
+  if (!previewDialog.open) return;
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    moveResultPreview(-1);
+  } else if (event.key === "ArrowRight") {
+    event.preventDefault();
+    moveResultPreview(1);
+  }
 });
 
 for (const eventName of ["dragenter", "dragover"]) {
   dropZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    dropZone.classList.add("dragging");
+    if (!submitButton.disabled) dropZone.classList.add("dragging");
   });
 }
 for (const eventName of ["dragleave", "drop"]) {
@@ -106,10 +248,7 @@ for (const eventName of ["dragleave", "drop"]) {
     dropZone.classList.remove("dragging");
   });
 }
-dropZone.addEventListener("drop", (event) => {
-  fileInput.files = event.dataTransfer.files;
-  previewFiles();
-});
+dropZone.addEventListener("drop", (event) => addRecentSources([...event.dataTransfer.files]));
 
 async function loadCapabilities() {
   const response = await fetch("/api/health");
@@ -122,17 +261,33 @@ async function loadCapabilities() {
   ai.textContent += ai.disabled ? " — not installed" : " — ready";
 }
 
+function setBusy(busy) {
+  submitButton.disabled = busy;
+  fileInput.disabled = busy;
+  form.classList.toggle("is-processing", busy);
+  renderRecentSources();
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  submitButton.disabled = true;
+  const batch = recentSources.filter((source) => selectedSourceIds.has(source.id));
+  if (batch.length === 0) {
+    showPollError(new Error("Select at least one of your recent images"));
+    return;
+  }
+  activeBatchIds = batch.map((source) => source.id);
+  activeSourceId = activeBatchIds[0];
+  setBusy(true);
   statusBox.hidden = false;
   statusBox.className = "status";
   statusBox.textContent = "Uploading…";
   try {
-    const response = await fetch("/api/jobs", { method: "POST", body: new FormData(form) });
-    const body = await response.json();
-    if (!response.ok) throw new Error(body.detail || "Upload failed");
-    await poll(body.id);
+    const body = new FormData(form);
+    for (const source of batch) body.append("files", source.file, source.file.name);
+    const response = await fetch("/api/jobs", { method: "POST", body });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.detail || "Upload failed");
+    await poll(payload.id);
   } catch (error) {
     showPollError(error);
   }
@@ -142,37 +297,43 @@ async function poll(jobId) {
   const response = await fetch(`/api/jobs/${jobId}`);
   const job = await response.json();
   statusBox.textContent = `Processing ${job.completed} of ${job.total}…`;
+  activeSourceId = activeBatchIds[job.completed] || null;
+  renderRecentSources();
   if (job.state === "failed") throw new Error(job.error || "Processing failed");
   if (job.state !== "complete") {
     setTimeout(() => poll(jobId).catch(showPollError), 500);
     return;
   }
   renderRun(job);
+  activeBatchIds = [];
+  activeSourceId = null;
   statusBox.hidden = true;
-  submitButton.disabled = false;
+  setBusy(false);
 }
 
 function renderRun(job) {
-  const runResults = document.createDocumentFragment();
-  for (const file of job.files) {
+  const newItems = job.files.map((file) => {
     const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
     const grunge = `Grunge ${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`;
-    runResults.append(
-      card(file.download, file.name, {
-        downloadable: true,
-        meta: `${size} · ${grunge}`,
-      }),
-    );
-  }
-  resultHistory.prepend(runResults);
-  results.hidden = false;
+    return {
+      id: `${job.id}:${file.index}`,
+      name: file.name,
+      url: file.download,
+      deleteUrl: file.delete,
+      meta: `${size} · ${grunge}`,
+    };
+  });
+  resultItems = [...newItems, ...resultItems];
+  renderResults();
 }
 
 function showPollError(error) {
+  activeBatchIds = [];
+  activeSourceId = null;
   statusBox.hidden = false;
-  statusBox.classList.add("failed");
+  statusBox.className = "status failed";
   statusBox.textContent = error.message;
-  submitButton.disabled = false;
+  setBusy(false);
 }
 
 loadCapabilities().catch(() => {});

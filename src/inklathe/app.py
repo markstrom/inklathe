@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, Response, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
@@ -90,6 +90,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return FileResponse(
             item.output_path, media_type="image/png", filename=item.output_path.name
         )
+
+    @api.delete("/api/jobs/{job_id}/files/{index}", status_code=204)
+    def delete_file(job_id: str, index: int) -> Response:
+        if not store.delete_result(job_id, index):
+            raise HTTPException(404, "Result not found")
+        return Response(status_code=204)
 
     @api.get("/api/jobs/{job_id}/archive")
     def get_archive(job_id: str) -> FileResponse:

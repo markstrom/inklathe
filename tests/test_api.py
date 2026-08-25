@@ -20,7 +20,7 @@ def test_app_shell_is_english(tmp_path) -> None:
 
     assert response.status_code == 200
     assert '<html lang="en">' in response.text
-    assert "Drop images here" in response.text
+    assert "Drop images" in response.text
     assert ">Process</button>" in response.text
 
 
@@ -41,6 +41,26 @@ def test_job_round_trip(tmp_path) -> None:
         assert job["state"] == "complete"
         assert client.get(job["files"][0]["download"]).headers["content-type"] == "image/png"
         assert client.get(job["archive"]).headers["content-type"] == "application/zip"
+
+
+def test_result_can_be_deleted(tmp_path) -> None:
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={"upscale": "none"},
+        )
+        job_id = response.json()["id"]
+        for _ in range(50):
+            job = client.get(f"/api/jobs/{job_id}").json()
+            if job["state"] == "complete":
+                break
+            sleep(0.02)
+
+        result = job["files"][0]
+        assert client.delete(result["delete"]).status_code == 204
+        assert client.get(result["download"]).status_code == 404
+        assert client.get(f"/api/jobs/{job_id}").json()["files"] == []
 
 
 def test_rejects_unconfigured_ai(tmp_path) -> None:

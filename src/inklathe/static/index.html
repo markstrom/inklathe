@@ -15,12 +15,17 @@
       </header>
 
       <form id="job-form">
-        <label class="drop" id="drop-zone">
-          <input id="files" name="files" type="file" accept="image/png,image/jpeg,image/webp" multiple required>
-          <strong>Drop images here</strong>
-          <span>or click to select PNG, JPEG, or WebP files</span>
-        </label>
-        <div id="input-preview" class="preview-grid"></div>
+        <div class="upload-strip">
+          <label class="drop" id="drop-zone">
+            <input id="files" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+            <strong>Drop images</strong>
+            <span>or choose files</span>
+          </label>
+          <div class="recent-sources">
+            <span id="recent-placeholder">Your five latest images appear here</span>
+            <div id="input-preview"></div>
+          </div>
+        </div>
 
         <div class="processing-bar">
           <section class="controls">
@@ -69,7 +74,17 @@
     </main>
 
     <dialog id="preview-dialog">
-      <button id="preview-close" class="dialog-close" type="button" aria-label="Close preview">×</button>
+      <button id="preview-previous" class="dialog-nav dialog-previous" type="button" aria-label="Previous result">←</button>
+      <button id="preview-next" class="dialog-nav dialog-next" type="button" aria-label="Next result">→</button>
+      <div class="dialog-actions">
+        <a id="preview-download" class="dialog-icon" download aria-label="Download result" title="Download result">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
+        </a>
+        <button id="preview-delete" class="dialog-icon danger" type="button" aria-label="Delete result" title="Delete result">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6"/></svg>
+        </button>
+        <button id="preview-close" class="dialog-icon dialog-close" type="button" aria-label="Close preview" title="Close preview">×</button>
+      </div>
       <img id="preview-large" alt="">
       <div class="dialog-caption">
         <strong id="preview-title"></strong>

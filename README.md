@@ -27,12 +27,14 @@ InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
 The local MVP currently supports:
 
 - one or multiple PNG, JPEG, or WebP uploads
+- a five-image recent-source tray with selection and active-processing states
 - a monochrome background-removal baseline
 - 2× and 4× Lanczos previews
 - reproducible, progressively scaled grunge
 - a compact, newest-first result gallery with dimensions, file sizes, and grunge values
-- full-size image previews
+- full-size image previews with button and keyboard navigation
 - individual PNG downloads from every result card
+- confirmed result deletion from cards or the full-size preview
 - a single-worker job queue suitable for the target server
 
 Lucida and the selected AI upscaler are exposed as optional worker adapters. They remain disabled in the UI until their commands and model weights are installed.

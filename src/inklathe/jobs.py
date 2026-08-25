@@ -57,9 +57,11 @@ class Job:
             },
             "files": [
                 {
+                    "index": index,
                     "name": item.output_path.name,
                     "source_name": item.name,
                     "download": f"/api/jobs/{self.id}/files/{index}",
+                    "delete": f"/api/jobs/{self.id}/files/{index}",
                     "input": {
                         "width": item.input_width,
                         "height": item.input_height,
@@ -120,6 +122,20 @@ class JobStore:
     def get(self, job_id: str) -> Job | None:
         with self.lock:
             return self.jobs.get(job_id)
+
+    def delete_result(self, job_id: str, index: int) -> bool:
+        with self.lock:
+            job = self.jobs.get(job_id)
+            if not job or job.state != "complete" or not 0 <= index < len(job.files):
+                return False
+            item = job.files[index]
+            if not item.output_path.exists():
+                return False
+            item.output_path.unlink()
+            if job.archive_path:
+                job.archive_path.unlink(missing_ok=True)
+                job.archive_path = None
+            return True
 
     def _process(self, job: Job, options: ProcessOptions) -> None:
         job.state = "processing"
