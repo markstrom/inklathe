@@ -262,6 +262,11 @@ settings snapshot, progress cards, and error state. The server processes submitt
 in FIFO order with one image worker, which avoids loading multiple large models at once.
 Changing the controls after submitting a run does not change that queued run.
 
+Queued cards say `Waiting in queue` rather than exposing an internal run number. During
+processing, the active card reports a dynamic step count covering preparation and only
+the selected upscale, background, print-treatment, and wear/finalization stages. Cached
+stages complete immediately, so polling may visibly jump over them without delaying work.
+
 ## Local print masks
 
 InkLathe can use high-resolution grayscale texture scans without redistributing them.

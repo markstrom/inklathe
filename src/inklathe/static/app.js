@@ -412,7 +412,11 @@ function resultCard(item) {
     spinner.setAttribute("aria-hidden", "true");
     const progress = document.createElement("strong");
     progress.textContent = item.progress;
-    placeholder.append(spinner, progress);
+    const progressDetail = document.createElement("span");
+    progressDetail.className = "result-progress-detail";
+    progressDetail.textContent = item.progressDetail || "";
+    progressDetail.hidden = !item.progressDetail;
+    placeholder.append(spinner, progress, progressDetail);
 
     const caption = document.createElement("figcaption");
     const captionName = document.createElement("strong");
@@ -504,7 +508,8 @@ function addPendingRun(batch) {
       pending: true,
       index,
       name: source.file.name,
-      progress: index === 0 ? `Uploading run ${runSequence}` : `Waiting for upload`,
+      progress: index === 0 ? "Uploading" : "Waiting for upload",
+      progressDetail: "",
       meta: settings,
     })),
   };
@@ -546,11 +551,16 @@ function updatePendingRun(run, job) {
       continue;
     }
     if (job.state === "queued") {
-      item.progress = `Run ${run.number} queued`;
+      item.progress = "Waiting in queue";
+      item.progressDetail = "";
     } else {
-      item.progress = item.index === job.completed
-        ? `Processing ${item.index + 1} of ${job.total}`
-        : `Queued ${item.index + 1} of ${job.total}`;
+      const active = item.index === job.completed;
+      const step = job.progress?.step || 1;
+      const totalSteps = job.progress?.total_steps || 1;
+      item.progress = active
+        ? `Processing step ${step} of ${totalSteps}`
+        : `Queued image ${item.index + 1} of ${job.total}`;
+      item.progressDetail = active ? (job.progress?.label || "") : "";
     }
   }
   renderResults();

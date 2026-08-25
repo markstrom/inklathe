@@ -55,6 +55,9 @@ class Job:
     state: str = "queued"
     error: str | None = None
     completed: int = 0
+    current_step: int = 0
+    total_steps: int = 0
+    step_label: str | None = None
     created_at: float = field(default_factory=time)
     files: list[JobFile] = field(default_factory=list)
     archive_path: Path | None = None
@@ -66,6 +69,11 @@ class Job:
             "error": self.error,
             "completed": self.completed,
             "total": len(self.files),
+            "progress": {
+                "step": self.current_step,
+                "total_steps": self.total_steps,
+                "label": self.step_label,
+            },
             "created_at": self.created_at,
             "settings": {
                 "background": self.options.background,
@@ -146,7 +154,13 @@ class JobStore:
                     content_hash=sha256(content).hexdigest(),
                 )
             )
-        job = Job(id=job_id, options=options, created_at=created_at, files=files)
+        job = Job(
+            id=job_id,
+            options=options,
+            created_at=created_at,
+            files=files,
+            total_steps=len(_processing_steps(options)),
+        )
         with self.lock:
             self.jobs[job_id] = job
         try:
@@ -189,7 +203,7 @@ class JobStore:
         job.state = "processing"
         try:
             for item in job.files:
-                self._process_file(item, options, options.seed)
+                self._process_file(job, item, options, options.seed)
                 self._finalize_output_name(item)
                 job.completed += 1
             archive = item.output_path.parent.parent / "inklathe-results.zip"
@@ -220,8 +234,20 @@ class JobStore:
         item.output_path = final_output
         item.preview_path = final_preview
 
-    def _process_file(self, item: JobFile, options: ProcessOptions, seed: int) -> None:
+    def _process_file(
+        self,
+        job: Job,
+        item: JobFile,
+        options: ProcessOptions,
+        seed: int,
+    ) -> None:
+        steps = iter(enumerate(_processing_steps(options), start=1))
+
+        def begin_step() -> None:
+            job.current_step, job.step_label = next(steps)
+
         item.cache_hits = []
+        begin_step()
         initial_options = ProcessOptions(
             background="none",
             upscale="none",
@@ -241,6 +267,7 @@ class JobStore:
         prepared_key = normalized_key
 
         if options.upscale == "ai":
+            begin_step()
             prepared_key = _cache_key(
                 "upscale-ai-v1",
                 normalized_key,
@@ -256,6 +283,7 @@ class JobStore:
                 ),
             )
         elif options.upscale == "lanczos":
+            begin_step()
             prepared_key = _cache_key("upscale-lanczos-v1", normalized_key, options.scale)
 
             def build_lanczos(destination: Path) -> None:
@@ -269,6 +297,7 @@ class JobStore:
             )
 
         if options.background == "lucida":
+            begin_step()
             background_key = _cache_key(
                 "background-lucida-v1",
                 prepared_key,
@@ -285,6 +314,7 @@ class JobStore:
             )
             prepared_key = background_key
         elif options.background == "threshold":
+            begin_step()
             background_options = ProcessOptions(
                 background="threshold",
                 upscale="none",
@@ -303,6 +333,7 @@ class JobStore:
             prepared_key = background_key
 
         if options.halftone != "none":
+            begin_step()
             profile = self.halftones.get(options.halftone)
             if profile is None:
                 raise ValueError(f"Halftone file is not installed: {options.halftone}")
@@ -335,6 +366,7 @@ class JobStore:
             )
             prepared_key = halftone_key
 
+        begin_step()
         with Image.open(prepared) as opened:
             bitmap = self.bitmap_textures.get(options.texture)
             final = apply_texture(
@@ -431,6 +463,22 @@ def _safe_name(original: str, index: int) -> str:
     if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
         suffix = ".png"
     return f"{index + 1:02d}-{_safe_stem(original)}{suffix}"
+
+
+def _processing_steps(options: ProcessOptions) -> list[str]:
+    steps = ["Preparing"]
+    if options.upscale != "none":
+        steps.append("Upscaling")
+    if options.background != "none":
+        steps.append("Removing background")
+    if options.halftone != "none":
+        steps.append("Applying print treatment")
+    steps.append(
+        "Applying wear"
+        if options.texture != "none" and options.grunge > 0
+        else "Finalizing"
+    )
+    return steps
 
 
 def _cache_key(*parts: object) -> str:
