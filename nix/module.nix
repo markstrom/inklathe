@@ -53,6 +53,40 @@ in
       default = 20;
       description = "Maximum runtime storage in GiB; zero disables cleanup.";
     };
+
+    aiUpscalerCommand = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/opt/inklathe/upscale-adapter";
+      description = "External upscaler command using InkLathe's INPUT OUTPUT SCALE contract.";
+    };
+
+    realEsrganBinary = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/opt/realesrgan/realesrgan-ncnn-vulkan";
+      description = "Real-ESRGAN executable; enables the packaged adapter automatically.";
+    };
+
+    realEsrganModelDir = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/opt/realesrgan/models";
+      description = "Optional directory containing Real-ESRGAN model files.";
+    };
+
+    realEsrganModel = lib.mkOption {
+      type = lib.types.str;
+      default = "realesrgan-x4plus";
+      description = "Real-ESRGAN model name used by the packaged adapter.";
+    };
+
+    lucidaCommand = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "/opt/lucida/.venv/bin/bgr";
+      description = "Base Lucida CLI command; InkLathe appends its remove arguments.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -86,6 +120,21 @@ in
         INKLATHE_TEXTURE_DIR = "/var/lib/inklathe/textures";
         INKLATHE_MAX_DATA_GB = toString cfg.maxDataGB;
         INKLATHE_AUTH_USERNAME = cfg.authUsername;
+      }
+      // lib.optionalAttrs (cfg.aiUpscalerCommand != null || cfg.realEsrganBinary != null) {
+        INKLATHE_AI_UPSCALER_COMMAND = if cfg.aiUpscalerCommand != null
+          then cfg.aiUpscalerCommand
+          else "${cfg.package}/libexec/inklathe/realesrgan_adapter.sh";
+      }
+      // lib.optionalAttrs (cfg.realEsrganBinary != null) {
+        INKLATHE_REALESRGAN_BIN = cfg.realEsrganBinary;
+        INKLATHE_REALESRGAN_MODEL = cfg.realEsrganModel;
+      }
+      // lib.optionalAttrs (cfg.realEsrganModelDir != null) {
+        INKLATHE_REALESRGAN_MODEL_DIR = cfg.realEsrganModelDir;
+      }
+      // lib.optionalAttrs (cfg.lucidaCommand != null) {
+        INKLATHE_LUCIDA_COMMAND = cfg.lucidaCommand;
       };
       serviceConfig = {
         Type = "simple";

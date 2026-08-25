@@ -11,6 +11,7 @@ const clearSourceSelection = document.querySelector("#clear-source-selection");
 const statusBox = document.querySelector("#status");
 const results = document.querySelector("#results");
 const resultHistory = document.querySelector("#result-history");
+const historyNote = document.querySelector(".history-note");
 const submitButton = form.querySelector("button[type=submit]");
 const previewDialog = document.querySelector("#preview-dialog");
 const previewZoom = document.querySelector("#preview-zoom");
@@ -31,6 +32,14 @@ const favoriteDialog = document.querySelector("#favorite-dialog");
 const favoriteNameInput = document.querySelector("#favorite-name");
 const confirmFavoriteButton = document.querySelector("#confirm-favorite");
 const cancelFavoriteButton = document.querySelector("#cancel-favorite");
+const settingsOpen = document.querySelector("#settings-open");
+const settingsDialog = document.querySelector("#settings-dialog");
+const settingsClose = document.querySelector("#settings-close");
+const settingsRecheck = document.querySelector("#settings-recheck");
+const settingsCopy = document.querySelector("#settings-copy");
+const upscalerStatus = document.querySelector("#upscaler-status");
+const lucidaStatus = document.querySelector("#lucida-status");
+const settingsWorkerNote = document.querySelector("#settings-worker-note");
 
 const themeModes = ["auto", "light", "dark"];
 const favoriteStorageKey = "inklathe-favorite-presets";
@@ -204,9 +213,9 @@ renderFavoritePresets();
 
 let recentSources = [];
 let selectedSourceIds = new Set();
-let activeBatchIds = [];
-let activeSourceId = null;
-let activePendingItems = [];
+let isSubmitting = false;
+let runSequence = 0;
+const activeRuns = new Map();
 let resultItems = [];
 let currentResultId = null;
 const textureLabels = {};
@@ -268,7 +277,6 @@ function sourceId(file) {
 }
 
 function addRecentSources(files) {
-  if (submitButton.disabled) return;
   const accepted = files.filter((file) => file.type.startsWith("image/"));
   const incoming = accepted.map((file) => {
     const id = sourceId(file);
@@ -290,7 +298,7 @@ function addRecentSources(files) {
 
 function removeRecentSource(id, skipConfirmation = false) {
   const source = recentSources.find((item) => item.id === id);
-  if (!source || submitButton.disabled) return;
+  if (!source) return;
   if (!skipConfirmation && !window.confirm(`Remove ${source.file.name} from recent images?`)) {
     return;
   }
@@ -314,24 +322,37 @@ function updateDropPromptVisibility() {
   recentPlaceholder.hidden = availableWidth < DROP_PROMPT_MIN_WIDTH;
 }
 
+function sourceQueueState(sourceIdValue) {
+  let queued = false;
+  for (const run of activeRuns.values()) {
+    const index = run.batchIds.indexOf(sourceIdValue);
+    if (index < 0 || index < run.completed) continue;
+    if (run.state === "processing" && index === run.completed) return "processing";
+    queued = true;
+  }
+  return queued ? "queued" : null;
+}
+
 function renderRecentSources() {
   inputPreview.replaceChildren();
-  recentPlaceholder.disabled = submitButton.disabled;
+  recentPlaceholder.disabled = false;
   recentActions.hidden = recentSources.length === 0;
   selectionCount.textContent = `${selectedSourceIds.size} of ${recentSources.length} selected`;
-  addImages.disabled = submitButton.disabled;
-  selectAllSources.disabled = submitButton.disabled || selectedSourceIds.size === recentSources.length;
-  clearSourceSelection.disabled = submitButton.disabled || selectedSourceIds.size === 0;
+  addImages.disabled = false;
+  selectAllSources.disabled = selectedSourceIds.size === recentSources.length;
+  clearSourceSelection.disabled = selectedSourceIds.size === 0;
   for (const source of recentSources) {
+    const queueState = sourceQueueState(source.id);
     const figure = document.createElement("figure");
     figure.className = "source-preview";
     figure.classList.toggle("selected", selectedSourceIds.has(source.id));
-    figure.classList.toggle("processing", activeSourceId === source.id);
+    figure.classList.toggle("processing", queueState === "processing");
+    figure.classList.toggle("queued", queueState === "queued");
 
     const select = document.createElement("button");
     select.type = "button";
     select.className = "source-select";
-    select.disabled = submitButton.disabled;
+    select.disabled = false;
     select.setAttribute("aria-pressed", String(selectedSourceIds.has(source.id)));
     select.setAttribute("aria-label", `Select ${source.file.name} for processing`);
     const image = document.createElement("img");
@@ -346,23 +367,22 @@ function renderRecentSources() {
       select.append(selected);
     }
     select.addEventListener("click", () => {
-      if (submitButton.disabled) return;
       if (selectedSourceIds.has(source.id)) selectedSourceIds.delete(source.id);
       else selectedSourceIds.add(source.id);
       renderRecentSources();
     });
 
-    if (activeSourceId === source.id) {
+    if (queueState) {
       const badge = document.createElement("span");
-      badge.className = "processing-badge";
-      badge.textContent = "Processing";
+      badge.className = `processing-badge ${queueState}`;
+      badge.textContent = queueState;
       select.append(badge);
     }
 
     const remove = document.createElement("button");
     remove.type = "button";
     remove.className = "source-remove";
-    remove.disabled = submitButton.disabled;
+    remove.disabled = false;
     remove.title = `Remove ${source.file.name} from recent images (Alt-click to skip confirmation)`;
     remove.setAttribute("aria-label", `Remove ${source.file.name} from recent images`);
     remove.innerHTML = `
@@ -465,26 +485,41 @@ function resultCard(item) {
 function renderResults() {
   resultHistory.replaceChildren(...resultItems.map(resultCard));
   results.hidden = resultItems.length === 0;
+  historyNote.textContent = activeRuns.size > 0
+    ? `${activeRuns.size} active ${activeRuns.size === 1 ? "run" : "runs"} · Newest first`
+    : "Newest first";
 }
 
 function addPendingRun(batch) {
-  const token = Date.now();
+  runSequence += 1;
+  const token = `${Date.now()}:${runSequence}`;
   const wear = Number(wearSelect.value);
   const settings = treatmentSummary(
     halftoneSelect.value,
     wear,
     textureSelect.value,
   );
-  activePendingItems = batch.map((source, index) => ({
-    id: `pending:${token}:${index}`,
-    pending: true,
-    index,
-    name: source.file.name,
-    progress: index === 0 ? `Uploading 1 of ${batch.length}` : `Queued ${index + 1} of ${batch.length}`,
-    meta: settings,
-  }));
-  resultItems = [...activePendingItems, ...resultItems];
+  const run = {
+    token,
+    number: runSequence,
+    jobId: null,
+    state: "uploading",
+    completed: 0,
+    batchIds: batch.map((source) => source.id),
+    items: batch.map((source, index) => ({
+      id: `pending:${token}:${index}`,
+      pending: true,
+      index,
+      name: source.file.name,
+      progress: index === 0 ? `Uploading run ${runSequence}` : `Waiting for upload`,
+      meta: settings,
+    })),
+  };
+  activeRuns.set(token, run);
+  resultItems = [...run.items, ...resultItems];
   renderResults();
+  renderRecentSources();
+  return run;
 }
 
 function resultFromFile(job, file) {
@@ -507,27 +542,33 @@ function resultFromFile(job, file) {
   };
 }
 
-function updatePendingRun(job) {
+function updatePendingRun(run, job) {
+  run.state = job.state;
+  run.completed = job.completed;
   const finished = new Map(job.files.map((file) => [file.index, file]));
-  for (const item of activePendingItems) {
+  for (const item of run.items) {
     const file = finished.get(item.index);
     if (file) {
       Object.assign(item, resultFromFile(job, file));
       continue;
     }
-    item.progress = item.index === job.completed
-      ? `Processing ${item.index + 1} of ${job.total}`
-      : `Queued ${item.index + 1} of ${job.total}`;
+    if (job.state === "queued") {
+      item.progress = `Run ${run.number} queued`;
+    } else {
+      item.progress = item.index === job.completed
+        ? `Processing ${item.index + 1} of ${job.total}`
+        : `Queued ${item.index + 1} of ${job.total}`;
+    }
   }
   renderResults();
+  renderRecentSources();
 }
 
-function clearUnfinishedPendingItems() {
+function clearUnfinishedPendingItems(run) {
   const unfinishedIds = new Set(
-    activePendingItems.filter((item) => item.pending).map((item) => item.id),
+    run.items.filter((item) => item.pending).map((item) => item.id),
   );
   resultItems = resultItems.filter((item) => !unfinishedIds.has(item.id));
-  activePendingItems = [];
   renderResults();
 }
 
@@ -538,10 +579,15 @@ function openResultPreview(id) {
   if (!previewDialog.open) previewDialog.showModal();
 }
 
+function availablePreviewItems() {
+  return resultItems.filter((item) => !item.pending);
+}
+
 function updateResultPreview() {
-  const index = resultItems.findIndex((item) => item.id === currentResultId);
+  const previewItems = availablePreviewItems();
+  const index = previewItems.findIndex((item) => item.id === currentResultId);
   if (index < 0) return;
-  const item = resultItems[index];
+  const item = previewItems[index];
   previewLarge.src = item.url;
   previewLarge.alt = item.name;
   previewOriginal.src = item.sourceUrl;
@@ -550,7 +596,7 @@ function updateResultPreview() {
   previewDownload.href = item.url;
   previewDownload.download = item.name;
   previewPrevious.disabled = index === 0;
-  previewNext.disabled = index === resultItems.length - 1;
+  previewNext.disabled = index === previewItems.length - 1;
   setPreviewZoom(false);
 }
 
@@ -587,10 +633,11 @@ function movePreviewPointer(event) {
 }
 
 function moveResultPreview(offset) {
-  const index = resultItems.findIndex((item) => item.id === currentResultId);
+  const previewItems = availablePreviewItems();
+  const index = previewItems.findIndex((item) => item.id === currentResultId);
   const nextIndex = index + offset;
-  if (index < 0 || nextIndex < 0 || nextIndex >= resultItems.length) return;
-  currentResultId = resultItems[nextIndex].id;
+  if (index < 0 || nextIndex < 0 || nextIndex >= previewItems.length) return;
+  currentResultId = previewItems[nextIndex].id;
   updateResultPreview();
 }
 
@@ -601,18 +648,19 @@ async function deleteResult(id, skipConfirmation = false) {
   if (!skipConfirmation && !window.confirm(`Delete ${item.name}? This cannot be undone.`)) return;
   const response = await fetch(item.deleteUrl, { method: "DELETE" });
   if (!response.ok) {
-    showPollError(new Error("Could not delete the result"));
+    showError(new Error("Could not delete the result"));
     return;
   }
   resultItems.splice(index, 1);
   renderResults();
   if (currentResultId !== id) return;
-  if (resultItems.length === 0) {
+  const previewItems = availablePreviewItems();
+  if (previewItems.length === 0) {
     currentResultId = null;
     previewDialog.close();
     return;
   }
-  currentResultId = resultItems[Math.min(index, resultItems.length - 1)].id;
+  currentResultId = previewItems[Math.min(index, previewItems.length - 1)].id;
   updateResultPreview();
 }
 
@@ -648,6 +696,40 @@ favoriteNameInput.addEventListener("keydown", (event) => {
   }
 });
 deleteFavoriteButton.addEventListener("click", (event) => deleteCurrentFavorite(event.altKey));
+settingsOpen.addEventListener("click", () => settingsDialog.showModal());
+settingsClose.addEventListener("click", () => settingsDialog.close());
+settingsDialog.addEventListener("click", (event) => {
+  if (event.target === settingsDialog) settingsDialog.close();
+});
+settingsCopy.addEventListener("click", async () => {
+  const template = `services.inklathe = {
+  lucidaCommand = "/opt/lucida/.venv/bin/bgr";
+  realEsrganBinary = "/opt/realesrgan/realesrgan-ncnn-vulkan";
+  realEsrganModelDir = "/opt/realesrgan/models";
+  realEsrganModel = "realesrgan-x4plus";
+};`;
+  try {
+    await navigator.clipboard.writeText(template);
+    settingsCopy.textContent = "Copied";
+  } catch (_) {
+    settingsCopy.textContent = "Copy failed";
+  }
+  setTimeout(() => { settingsCopy.textContent = "Copy NixOS template"; }, 1600);
+});
+settingsRecheck.addEventListener("click", async () => {
+  settingsRecheck.disabled = true;
+  settingsRecheck.textContent = "Checking…";
+  try {
+    await loadCapabilities({ refresh: true });
+  } catch (error) {
+    updateServiceStatus(upscalerStatus, false);
+    updateServiceStatus(lucidaStatus, false);
+    settingsWorkerNote.textContent = error.message;
+  } finally {
+    settingsRecheck.disabled = false;
+    settingsRecheck.textContent = "Check again";
+  }
+});
 document.querySelector(".controls").addEventListener("change", () => {
   favoritePresetSelect.value = "";
   deleteFavoriteButton.disabled = true;
@@ -689,7 +771,7 @@ document.addEventListener("keydown", (event) => {
 for (const eventName of ["dragenter", "dragover"]) {
   dropZone.addEventListener(eventName, (event) => {
     event.preventDefault();
-    if (!submitButton.disabled) dropZone.classList.add("dragging");
+    dropZone.classList.add("dragging");
   });
 }
 for (const eventName of ["dragleave", "drop"]) {
@@ -700,15 +782,32 @@ for (const eventName of ["dragleave", "drop"]) {
 }
 dropZone.addEventListener("drop", (event) => addRecentSources([...event.dataTransfer.files]));
 
-async function loadCapabilities() {
+function updateServiceStatus(element, configured) {
+  element.textContent = configured ? "Configured" : "Not configured";
+  element.classList.toggle("ready", configured);
+  element.classList.toggle("missing", !configured);
+}
+
+async function loadCapabilities({ refresh = false } = {}) {
   const response = await fetch("/api/health");
+  if (!response.ok) throw new Error("Could not read server capabilities");
   const health = await response.json();
   const lucida = document.querySelector("#lucida-option");
   const ai = document.querySelector("#ai-option");
   lucida.disabled = !health.capabilities.lucida;
   ai.disabled = !health.capabilities.ai_upscaler;
-  lucida.textContent += lucida.disabled ? " — not configured" : " — configured";
-  ai.textContent += ai.disabled ? " — not configured" : " — configured";
+  if (ai.disabled && form.elements.namedItem("upscale").value === "ai") {
+    form.elements.namedItem("upscale").value = "lanczos";
+  }
+  if (lucida.disabled && form.elements.namedItem("background").value === "lucida") {
+    form.elements.namedItem("background").value = "threshold";
+  }
+  lucida.textContent = `Lucida AI — ${lucida.disabled ? "not configured" : "configured"}`;
+  ai.textContent = `AI model — ${ai.disabled ? "not configured" : "configured"}`;
+  updateServiceStatus(upscalerStatus, health.capabilities.ai_upscaler);
+  updateServiceStatus(lucidaStatus, health.capabilities.lucida);
+  settingsWorkerNote.textContent = `${health.workers} image worker · submitted runs are processed in FIFO order.`;
+  if (refresh) return health;
   const halftones = health.capabilities.halftones || [];
   const halftoneGroups = new Map();
   for (const treatment of halftones) {
@@ -753,13 +852,13 @@ async function loadCapabilities() {
   }
   capabilitiesReady = true;
   renderFavoritePresets();
+  return health;
 }
 
-function setBusy(busy) {
-  submitButton.disabled = busy;
-  fileInput.disabled = busy;
-  form.classList.toggle("is-processing", busy);
-  renderRecentSources();
+function setSubmitting(submitting) {
+  isSubmitting = submitting;
+  submitButton.disabled = submitting;
+  form.classList.toggle("is-submitting", submitting);
 }
 
 function randomSelectOption(select, { exclude = [] } = {}) {
@@ -786,15 +885,14 @@ submitButton.addEventListener("click", (event) => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (isSubmitting) return;
   const batch = recentSources.filter((source) => selectedSourceIds.has(source.id));
   if (batch.length === 0) {
-    showPollError(new Error("Select at least one of your recent images"));
+    showError(new Error("Select at least one of your recent images"));
     return;
   }
-  activeBatchIds = batch.map((source) => source.id);
-  activeSourceId = activeBatchIds[0];
-  addPendingRun(batch);
-  setBusy(true);
+  const run = addPendingRun(batch);
+  setSubmitting(true);
   statusBox.hidden = true;
   statusBox.className = "status";
   statusBox.textContent = "";
@@ -804,39 +902,42 @@ form.addEventListener("submit", async (event) => {
     const response = await fetch("/api/jobs", { method: "POST", body });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.detail || "Upload failed");
-    await poll(payload.id);
+    run.jobId = payload.id;
+    updatePendingRun(run, payload);
+    pollRun(run).catch((error) => failRun(run, error));
   } catch (error) {
-    showPollError(error);
+    failRun(run, error);
+  } finally {
+    setSubmitting(false);
   }
 });
 
-async function poll(jobId) {
-  const response = await fetch(`/api/jobs/${jobId}`);
+async function pollRun(run) {
+  const response = await fetch(`/api/jobs/${run.jobId}`);
+  if (!response.ok) throw new Error("Could not read queued run");
   const job = await response.json();
-  updatePendingRun(job);
-  activeSourceId = activeBatchIds[job.completed] || null;
-  renderRecentSources();
+  updatePendingRun(run, job);
   if (job.state === "failed") throw new Error(job.error || "Processing failed");
   if (job.state !== "complete") {
-    setTimeout(() => poll(jobId).catch(showPollError), 500);
+    setTimeout(() => pollRun(run).catch((error) => failRun(run, error)), 500);
     return;
   }
-  updatePendingRun(job);
-  activePendingItems = [];
-  activeBatchIds = [];
-  activeSourceId = null;
-  statusBox.hidden = true;
-  setBusy(false);
+  activeRuns.delete(run.token);
+  renderResults();
+  renderRecentSources();
 }
 
-function showPollError(error) {
-  clearUnfinishedPendingItems();
-  activeBatchIds = [];
-  activeSourceId = null;
+function failRun(run, error) {
+  activeRuns.delete(run.token);
+  clearUnfinishedPendingItems(run);
+  renderRecentSources();
+  showError(error, `Run ${run.number}`);
+}
+
+function showError(error, prefix = "") {
   statusBox.hidden = false;
   statusBox.className = "status failed";
-  statusBox.textContent = error.message;
-  setBusy(false);
+  statusBox.textContent = prefix ? `${prefix}: ${error.message}` : error.message;
 }
 
 loadCapabilities().catch(() => {});

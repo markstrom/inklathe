@@ -39,6 +39,11 @@
             ];
             pythonImportsCheck = [ "inklathe" ];
 
+            postInstall = ''
+              install -Dm755 scripts/realesrgan_adapter.sh \
+                $out/libexec/inklathe/realesrgan_adapter.sh
+            '';
+
             meta = {
               description = "Self-hosted workshop for monochrome artwork";
               homepage = "https://github.com/markstrom/inklathe";

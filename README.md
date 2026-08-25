@@ -25,6 +25,7 @@ workers can be installed separately on the same server.
 - Download or delete individual PNG results
 - Alt-click a delete control to skip its confirmation
 - Reuse cached normalization, scaling, background, and print-treatment stages
+- Queue additional Process or Alt-Process runs while the single image worker is busy
 - Keep storage below a configurable ceiling by evicting cache files before old jobs
 - Name downloads with sortable five-character Base62 timestamps
 
@@ -73,6 +74,10 @@ variables before starting InkLathe. Use absolute paths when running it as a serv
 The interface reports an option as `configured` when its environment variable is set.
 This is not a live model-health check: an invalid executable or missing weight file is
 reported when a job tries to use it.
+
+Open `AI setup` in the web interface to see the current configuration and recheck it
+after a server rebuild. For safety, the page cannot install packages or change executable
+paths: those operations remain part of the administrator-controlled NixOS configuration.
 
 ### Background removal: Lucida
 
@@ -210,6 +215,17 @@ modules = [
       authUsername = "inklathe";
       authPasswordFile = "/var/lib/secrets/inklathe-auth-password";
       maxDataGB = 20;
+
+      # Optional background-removal worker:
+      # lucidaCommand = "/opt/lucida/.venv/bin/bgr";
+
+      # Optional generic upscaler using COMMAND INPUT OUTPUT SCALE:
+      # aiUpscalerCommand = "/opt/inklathe/upscale-adapter";
+
+      # Or use the Real-ESRGAN adapter included in the Nix package:
+      # realEsrganBinary = "/opt/realesrgan/realesrgan-ncnn-vulkan";
+      # realEsrganModelDir = "/opt/realesrgan/models";
+      # realEsrganModel = "realesrgan-x4plus";
     };
   }
 ];
@@ -233,6 +249,14 @@ firewall. Only ports 80 and 443 should reach Caddy.
 Install licensed texture files separately under
 `/var/lib/inklathe/textures/{wear,halftone}/`; they are deliberately absent from the
 Nix package and Git repository.
+
+## Job queue
+
+`Process` and Alt-click `Process` may be used again as soon as the upload has been
+accepted, even while earlier runs are queued or processing. Every click keeps its own
+settings snapshot, progress cards, and error state. The server processes submitted runs
+in FIFO order with one image worker, which avoids loading multiple large models at once.
+Changing the controls after submitting a run does not change that queued run.
 
 ## Local print masks
 

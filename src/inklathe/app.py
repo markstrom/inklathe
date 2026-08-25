@@ -92,6 +92,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     for key, profile in halftones.items()
                 ],
             },
+            "setup": {
+                "managed_by": "server",
+                "ai_upscaler": {
+                    "configured": bool(settings.ai_upscaler_command),
+                    "nixos_options": [
+                        "services.inklathe.aiUpscalerCommand",
+                        "services.inklathe.realEsrganBinary",
+                    ],
+                },
+                "lucida": {
+                    "configured": bool(settings.lucida_command),
+                    "nixos_options": ["services.inklathe.lucidaCommand"],
+                },
+            },
         }
 
     @api.post("/api/jobs", status_code=202)

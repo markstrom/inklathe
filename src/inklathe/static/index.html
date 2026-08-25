@@ -22,6 +22,7 @@
         <div class="header-top">
           <p class="eyebrow">SELF-HOSTED IMAGE WORKSHOP</p>
           <div class="display-controls" aria-label="Display settings">
+            <button id="settings-open" class="utility-button" type="button">AI setup</button>
             <button id="theme-toggle" class="utility-button" type="button">Theme: Auto</button>
           </div>
         </div>
@@ -112,7 +113,7 @@
             </label>
           </section>
 
-          <button type="submit" data-tooltip="Alt-click to randomize print, wear, level, and pattern placement">Process</button>
+          <button type="submit" data-tooltip="Alt-click randomizes the treatment. New runs join the FIFO queue.">Process</button>
         </div>
       </form>
 
@@ -135,6 +136,50 @@
         <div class="favorite-dialog-actions">
           <button id="cancel-favorite" class="preset-button" type="button">Cancel</button>
           <button id="confirm-favorite" type="button">Save favorite</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="settings-dialog" class="settings-dialog">
+      <div class="settings-panel">
+        <div class="settings-heading">
+          <div>
+            <p class="eyebrow">SERVER SETTINGS</p>
+            <h2>Optional AI workers</h2>
+          </div>
+          <button id="settings-close" class="dialog-icon" type="button" aria-label="Close AI setup">×</button>
+        </div>
+        <p class="settings-intro">
+          AI models run as separate server programs. This page checks the current setup;
+          installation and command paths remain administrator-managed on the NixOS server.
+          <a class="settings-link" href="https://github.com/markstrom/inklathe#optional-ai-workers" target="_blank" rel="noreferrer">Open installation guide</a>
+        </p>
+        <div class="settings-services">
+          <section class="settings-service">
+            <div class="settings-service-heading">
+              <h3>AI upscaling</h3>
+              <strong id="upscaler-status" class="service-status">Checking…</strong>
+            </div>
+            <p>Use a generic adapter command, or configure the included Real-ESRGAN adapter.</p>
+            <code>services.inklathe.aiUpscalerCommand</code>
+            <code>services.inklathe.realEsrganBinary</code>
+          </section>
+          <section class="settings-service">
+            <div class="settings-service-heading">
+              <h3>AI background removal</h3>
+              <strong id="lucida-status" class="service-status">Checking…</strong>
+            </div>
+            <p>Install Lucida and point InkLathe at its <code>bgr</code> executable.</p>
+            <code>services.inklathe.lucidaCommand</code>
+          </section>
+        </div>
+        <p id="settings-worker-note" class="settings-note"></p>
+        <div class="settings-actions">
+          <span>Change NixOS settings, rebuild the server, then check again.</span>
+          <div class="settings-buttons">
+            <button id="settings-copy" class="preset-button" type="button">Copy NixOS template</button>
+            <button id="settings-recheck" class="preset-button" type="button">Check again</button>
+          </div>
         </div>
       </div>
     </dialog>
