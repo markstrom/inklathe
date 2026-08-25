@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="190" viewBox="0 0 900 190" role="img" aria-labelledby="title description">
+  <title id="title">InkLathe</title>
+  <desc id="description">InkLathe terminal-style wordmark in black on a white background.</desc>
+  <rect width="900" height="190" fill="#fff"/>
+  <g fill="#111" font-family="DejaVu Sans Mono, Menlo, Consolas, monospace" font-size="22" font-weight="700" xml:space="preserve">
+    <text x="28" y="42">██╗███╗   ██╗██╗  ██╗██╗      █████╗ ████████╗██╗  ██╗███████╗</text>
+    <text x="28" y="66">██║████╗  ██║██║ ██╔╝██║     ██╔══██╗╚══██╔══╝██║  ██║██╔════╝</text>
+    <text x="28" y="90">██║██╔██╗ ██║█████╔╝ ██║     ███████║   ██║   ███████║█████╗</text>
+    <text x="28" y="114">██║██║╚██╗██║██╔═██╗ ██║     ██╔══██║   ██║   ██╔══██║██╔══╝</text>
+    <text x="28" y="138">██║██║ ╚████║██║  ██╗███████╗██║  ██║   ██║   ██║  ██║███████╗</text>
+    <text x="28" y="162">╚═╝╚═╝  ╚═══╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚══════╝</text>
+  </g>
+</svg>

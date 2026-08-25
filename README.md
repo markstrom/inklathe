@@ -2,15 +2,9 @@
 
 # InkLathe
 
-```text
-##### #   # #  #  #      ###  ##### #   # #####
-  #   ##  # # #   #     #   #   #   #   # #
-  #   # # # ##    #     #####   #   ##### ####
-  #   #  ## # #   #     #   #   #   #   # #
-##### #   # #  #  ##### #   #   #   #   # #####
+<img src="assets/brand/github-wordmark-white.png" alt="InkLathe terminal wordmark" width="820">
 
-     restore / isolate / upscale / distress
-```
+`restore / isolate / upscale / distress`
 
 InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
 
