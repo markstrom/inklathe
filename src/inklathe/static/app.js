@@ -139,14 +139,14 @@ function resultCard(item) {
   const remove = document.createElement("button");
   remove.className = "card-icon danger";
   remove.type = "button";
-  remove.title = `Delete ${item.name}`;
+  remove.title = `Delete ${item.name} (Alt-click to skip confirmation)`;
   remove.setAttribute("aria-label", `Delete ${item.name}`);
   remove.innerHTML = `
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6" />
     </svg>
   `;
-  remove.addEventListener("click", () => deleteResult(item.id));
+  remove.addEventListener("click", (event) => deleteResult(item.id, event.altKey));
 
   actions.append(download, remove);
   captionHeading.append(captionName, actions);
@@ -190,11 +190,11 @@ function moveResultPreview(offset) {
   updateResultPreview();
 }
 
-async function deleteResult(id) {
+async function deleteResult(id, skipConfirmation = false) {
   const index = resultItems.findIndex((item) => item.id === id);
   if (index < 0) return;
   const item = resultItems[index];
-  if (!window.confirm(`Delete ${item.name}? This cannot be undone.`)) return;
+  if (!skipConfirmation && !window.confirm(`Delete ${item.name}? This cannot be undone.`)) return;
   const response = await fetch(item.deleteUrl, { method: "DELETE" });
   if (!response.ok) {
     showPollError(new Error("Could not delete the result"));
@@ -221,7 +221,7 @@ grungeSlider.addEventListener("input", (event) => {
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewPrevious.addEventListener("click", () => moveResultPreview(-1));
 previewNext.addEventListener("click", () => moveResultPreview(1));
-previewDelete.addEventListener("click", () => deleteResult(currentResultId));
+previewDelete.addEventListener("click", (event) => deleteResult(currentResultId, event.altKey));
 previewDialog.addEventListener("click", (event) => {
   if (event.target === previewDialog) previewDialog.close();
 });

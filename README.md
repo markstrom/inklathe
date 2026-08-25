@@ -36,6 +36,7 @@ The local MVP currently supports:
 - full-size image previews with button and keyboard navigation
 - individual PNG downloads from every result card
 - confirmed result deletion from cards or the full-size preview
+- Alt-click deletion without confirmation for faster result cleanup
 - a single-worker job queue suitable for the target server
 
 Lucida and the selected AI upscaler are exposed as optional worker adapters. They remain disabled in the UI until their commands and model weights are installed.
