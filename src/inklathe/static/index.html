@@ -151,7 +151,8 @@
         </div>
         <p class="settings-intro">
           Built-in engines are always ready. Optional engines run as separate server
-          programs and only appear in the processing controls when available.
+          programs and only appear in the processing controls when available. Copy one
+          command, paste it into the server terminal, and enter your sudo password.
           <a class="settings-link" href="https://github.com/markstrom/inklathe#processing-engines" target="_blank" rel="noreferrer">Open engine guide</a>
         </p>
         <div class="settings-engine-group">
@@ -184,10 +185,10 @@
                 <strong id="upscaler-status" class="service-status">Checking…</strong>
               </div>
               <p>External AI upscaling through InkLathe's command adapter.</p>
-              <code>services.inklathe.realEsrganBinary</code>
+              <code>sudo inklathe-engine install realesrgan</code>
               <div class="settings-service-actions">
-                <button id="upscaler-install" class="preset-button" type="button">Copy setup config</button>
-                <button id="upscaler-remove" class="preset-button danger" type="button">Copy remove config</button>
+                <button id="upscaler-install" class="preset-button" type="button">Copy install command</button>
+                <button id="upscaler-remove" class="preset-button danger" type="button">Copy remove command</button>
               </div>
             </section>
             <section class="settings-service">
@@ -196,24 +197,24 @@
                 <strong id="lucida-status" class="service-status">Checking…</strong>
               </div>
               <p>External AI background removal using the Lucida CLI and model.</p>
-              <code>services.inklathe.lucidaCommand</code>
+              <code>sudo inklathe-engine install lucida</code>
               <div class="settings-service-actions">
-                <button id="lucida-install" class="preset-button" type="button">Copy setup config</button>
-                <button id="lucida-remove" class="preset-button danger" type="button">Copy remove config</button>
+                <button id="lucida-install" class="preset-button" type="button">Copy install command</button>
+                <button id="lucida-remove" class="preset-button danger" type="button">Copy remove command</button>
               </div>
             </section>
           </div>
         </div>
         <p id="settings-worker-note" class="settings-note"></p>
         <div class="settings-actions">
-          <span>Apply the copied NixOS configuration on the server, then check again.</span>
+          <span>Run the copied command on the server, then check again.</span>
           <div class="settings-buttons">
             <button id="settings-recheck" class="preset-button" type="button">Check again</button>
           </div>
         </div>
         <p class="settings-footnote">
-          Remove configuration disconnects only the selected optional engine. It never
-          removes uploads, results, masks, favorites, or InkLathe itself.
+          Remove commands affect only the selected optional engine. They never remove
+          uploads, results, masks, favorites, or InkLathe itself.
         </p>
       </div>
     </dialog>

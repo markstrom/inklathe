@@ -819,51 +819,19 @@ async function copySettingsTemplate(button, template) {
 }
 
 upscalerInstall.addEventListener("click", () => {
-  const template = `# Add these lines to the existing services.inklathe block.
-services.inklathe = {
-  realEsrganBinary = "/opt/realesrgan/realesrgan-ncnn-vulkan";
-  realEsrganModelDir = "/opt/realesrgan/models";
-  realEsrganModel = "realesrgan-x4plus";
-};
-
-# Then apply it from SSH:
-sudo nixos-rebuild switch --flake /etc/nixos#server`;
+  const template = "sudo inklathe-engine install realesrgan";
   copySettingsTemplate(upscalerInstall, template);
 });
 upscalerRemove.addEventListener("click", () => {
-  const template = `# Disconnect only the optional Real-ESRGAN engine.
-services.inklathe = {
-  aiUpscalerCommand = null;
-  realEsrganBinary = null;
-  realEsrganModelDir = null;
-};
-
-# Then apply it from SSH:
-sudo nixos-rebuild switch --flake /etc/nixos#server
-
-# This does not delete InkLathe data or externally installed model files.`;
+  const template = "sudo inklathe-engine remove realesrgan";
   copySettingsTemplate(upscalerRemove, template);
 });
 lucidaInstall.addEventListener("click", () => {
-  const template = `# Add this line to the existing services.inklathe block.
-services.inklathe = {
-  lucidaCommand = "/opt/lucida/.venv/bin/bgr";
-};
-
-# Then apply it from SSH:
-sudo nixos-rebuild switch --flake /etc/nixos#server`;
+  const template = "sudo inklathe-engine install lucida";
   copySettingsTemplate(lucidaInstall, template);
 });
 lucidaRemove.addEventListener("click", () => {
-  const template = `# Disconnect only the optional Lucida engine.
-services.inklathe = {
-  lucidaCommand = null;
-};
-
-# Then apply it from SSH:
-sudo nixos-rebuild switch --flake /etc/nixos#server
-
-# This does not delete InkLathe data or externally installed model files.`;
+  const template = "sudo inklathe-engine remove lucida";
   copySettingsTemplate(lucidaRemove, template);
 });
 settingsRecheck.addEventListener("click", async () => {

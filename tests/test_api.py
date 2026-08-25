@@ -58,6 +58,9 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "function setEngineOption(" in script.text
     assert 'id="upscaler-install"' in response.text
     assert 'id="lucida-remove"' in response.text
+    assert "Copy install command" in response.text
+    assert '"sudo inklathe-engine install realesrgan"' in script.text
+    assert '"sudo inklathe-engine remove lucida"' in script.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text

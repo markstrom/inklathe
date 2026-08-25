@@ -72,8 +72,22 @@ weights, or GPU drivers. Without optional engines, use `Lanczos preview` and
 
 ## Processing engines
 
-InkLathe runs optional engines as child processes. Configure commands with environment
-variables before starting InkLathe. Use absolute paths when running it as a service.
+InkLathe runs optional engines as child processes. On the included NixOS module, each
+engine can be installed or removed with one terminal command; no editor is required:
+
+```bash
+sudo inklathe-engine install realesrgan
+sudo inklathe-engine remove realesrgan
+sudo inklathe-engine install lucida
+sudo inklathe-engine remove lucida
+```
+
+The commands use packages from the server's locked NixOS configuration, write only the
+engine variables to `/var/lib/inklathe/engines.env`, and restart InkLathe. Real-ESRGAN is
+kept through a Nix store link. Lucida's installer also downloads and validates its roughly
+1 GB model in `/var/lib/inklathe/engines/lucida-cache`. Its remove command deletes that
+managed model cache. Neither remove command touches uploads, results, masks, favorites,
+or the InkLathe application.
 
 The `Engines` dialog lists the built-in engines and the optional engine catalog. Optional
 engines only appear in the main processing dropdowns when the server reports them as
@@ -82,13 +96,9 @@ is set.
 This is not a live model-health check: an invalid executable or missing weight file is
 reported when a job tries to use it.
 
-Open `Engines` in the web interface to see the current configuration and recheck it
-after a server rebuild. For safety, the page cannot install packages or change executable
-paths: those operations remain part of the administrator-controlled NixOS configuration.
-Each optional engine has its own setup and remove configuration. Removing one disconnects
-only that engine and deliberately leaves InkLathe uploads, results, masks, favorites, and
-application files untouched. Externally installed model directories should only be removed
-separately after their actual server paths have been verified.
+Open `Engines` in the web interface to see the current status. Its buttons copy the
+matching command; the browser itself never receives sudo access. Paste the command into
+an SSH terminal, enter the sudo password there, then use `Check again`.
 
 ### Background removal: Lucida
 
@@ -96,33 +106,10 @@ separately after their actual server paths have been verified.
 remover designed to preserve details such as text, line art, glow, and print designs.
 Its code and model are not part of InkLathe.
 
-Install Lucida in its own environment, following its upstream instructions. One
-possible layout is:
-
-```bash
-git clone https://github.com/egeorcun/lucida /opt/lucida
-python3.12 -m venv /opt/lucida/.venv
-/opt/lucida/.venv/bin/pip install -e /opt/lucida
-```
-
-Download the released weights from
-[`egeorcun/lucida` on Hugging Face](https://huggingface.co/egeorcun/lucida) and put
-them at the path required by that Lucida release. Verify the installation independently:
-
-```bash
-/opt/lucida/.venv/bin/bgr remove input.png -o output.png --model lucida
-```
-
-Then configure only the base CLI command. InkLathe appends
-`remove INPUT -o OUTPUT --model lucida` itself:
-
-```bash
-export INKLATHE_LUCIDA_COMMAND=/opt/lucida/.venv/bin/bgr
-INKLATHE_DATA_DIR=./data .venv/bin/inklathe
-```
-
-The worker must produce a transparent RGBA PNG at the requested output path. Lucida's
-official CLI does this directly.
+The included Nix worker follows Lucida's official Transformers inference procedure, pins
+the model repository revision, and stores the Hugging Face model cache under InkLathe's
+data directory. The first installation can therefore take several minutes. The worker
+produces a transparent RGBA PNG at the requested output path.
 
 ### Upscaling: command adapter
 
@@ -137,7 +124,8 @@ COMMAND INPUT_PATH OUTPUT_PATH SCALE
 `OUTPUT_PATH`. InkLathe does not currently bundle or require UCAN. UCAN remains a
 research candidate, but there is no UCAN-specific adapter in this repository.
 
-For a practical installation, the repository includes
+The one-command installer uses NixOS's packaged `realesrgan-ncnn-vulkan`. For a manual
+or non-NixOS installation, the repository also includes
 [`scripts/realesrgan_adapter.sh`](scripts/realesrgan_adapter.sh), which translates the
 contract to the official
 [`realesrgan-ncnn-vulkan`](https://github.com/xinntao/Real-ESRGAN) command-line syntax.

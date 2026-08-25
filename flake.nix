@@ -17,6 +17,17 @@
         system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          lucidaPython = pkgs.python3.withPackages (
+            pythonPackages: with pythonPackages; [
+              einops
+              huggingface-hub
+              pillow
+              timm
+              torch
+              torchvision
+              transformers
+            ]
+          );
         in
         {
           default = pkgs.python3Packages.buildPythonApplication {
@@ -42,6 +53,17 @@
             postInstall = ''
               install -Dm755 scripts/realesrgan_adapter.sh \
                 $out/libexec/inklathe/realesrgan_adapter.sh
+              install -Dm755 scripts/realesrgan_adapter.sh \
+                $out/bin/inklathe-realesrgan-adapter
+              install -Dm755 scripts/inklathe-engine.sh $out/bin/inklathe-engine
+              substituteInPlace $out/bin/inklathe-engine \
+                --replace-fail '@PACKAGE_ROOT@' "$out"
+              install -Dm644 scripts/engines/common.sh \
+                $out/libexec/inklathe/engines/common.sh
+              for script in install-realesrgan remove-realesrgan install-lucida remove-lucida; do
+                install -Dm755 scripts/engines/$script.sh \
+                  $out/libexec/inklathe/engines/$script.sh
+              done
             '';
 
             meta = {
@@ -49,6 +71,14 @@
               homepage = "https://github.com/markstrom/inklathe";
               mainProgram = "inklathe";
             };
+          };
+
+          lucida-worker = pkgs.writeShellApplication {
+            name = "inklathe-lucida";
+            runtimeInputs = [ lucidaPython ];
+            text = ''
+              exec python ${./scripts/lucida_worker.py} "$@"
+            '';
           };
         }
       );

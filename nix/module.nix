@@ -81,11 +81,25 @@ in
       description = "Real-ESRGAN model name used by the packaged adapter.";
     };
 
+    realEsrganPackage = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.realesrgan-ncnn-vulkan;
+      defaultText = lib.literalExpression "pkgs.realesrgan-ncnn-vulkan";
+      description = "Real-ESRGAN package used by the terminal installer.";
+    };
+
     lucidaCommand = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
       default = null;
       example = "/opt/lucida/.venv/bin/bgr";
       description = "Base Lucida CLI command; InkLathe appends its remove arguments.";
+    };
+
+    lucidaPackage = lib.mkOption {
+      type = lib.types.package;
+      default = self.packages.${pkgs.stdenv.hostPlatform.system}.lucida-worker;
+      defaultText = lib.literalExpression "the Lucida worker exported by the InkLathe flake";
+      description = "Lucida worker package used by the terminal installer.";
     };
   };
 
@@ -107,7 +121,10 @@ in
     systemd.tmpfiles.rules = [
       "d /var/lib/inklathe 0750 inklathe inklathe -"
       "d /var/lib/inklathe/textures 0750 inklathe inklathe -"
+      "d /var/lib/inklathe/engines 0750 root inklathe -"
     ];
+
+    environment.systemPackages = [ cfg.package ];
 
     systemd.services.inklathe = {
       description = "InkLathe image workshop";
@@ -124,7 +141,7 @@ in
       // lib.optionalAttrs (cfg.aiUpscalerCommand != null || cfg.realEsrganBinary != null) {
         INKLATHE_AI_UPSCALER_COMMAND = if cfg.aiUpscalerCommand != null
           then cfg.aiUpscalerCommand
-          else "${cfg.package}/libexec/inklathe/realesrgan_adapter.sh";
+          else "${cfg.package}/bin/inklathe-realesrgan-adapter";
       }
       // lib.optionalAttrs (cfg.realEsrganBinary != null) {
         INKLATHE_REALESRGAN_BIN = cfg.realEsrganBinary;
@@ -146,6 +163,7 @@ in
         Restart = "on-failure";
         RestartSec = "5s";
         UMask = "0027";
+        EnvironmentFile = "-/var/lib/inklathe/engines.env";
 
         NoNewPrivileges = true;
         PrivateTmp = true;
