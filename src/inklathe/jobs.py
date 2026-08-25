@@ -27,8 +27,7 @@ from .processing import (
 
 BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 TIMESTAMP_EPOCH = 1767225600  # 2026-01-01 00:00:00 UTC
-TIMESTAMP_EPOCH_MS = TIMESTAMP_EPOCH * 1000
-TIMESTAMP_WIDTH = 7
+TIMESTAMP_WIDTH = 5
 PREVIEW_MAX_SIZE = 640
 
 
@@ -110,7 +109,7 @@ class JobStore:
         self.settings.data_dir.mkdir(parents=True, exist_ok=True)
         self.jobs: dict[str, Job] = {}
         self.lock = Lock()
-        self.last_output_millisecond = TIMESTAMP_EPOCH_MS - 1
+        self.last_output_second = TIMESTAMP_EPOCH - 1
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="inklathe-worker")
         self.bitmap_textures = available_bitmap_textures(settings.texture_dir)
         self.halftones = available_halftones(settings.texture_dir)
@@ -161,14 +160,14 @@ class JobStore:
         return job
 
     def _next_output_timestamp(self, created_at: float) -> str:
-        current_millisecond = round(created_at * 1000)
+        current_second = int(created_at)
         with self.lock:
-            output_millisecond = max(
-                current_millisecond,
-                self.last_output_millisecond + 1,
+            output_second = max(
+                current_second,
+                self.last_output_second + 1,
             )
-            self.last_output_millisecond = output_millisecond
-        return _base62_millisecond(output_millisecond)
+            self.last_output_second = output_second
+        return _base62_timestamp(output_second)
 
     def get(self, job_id: str) -> Job | None:
         with self.lock:
@@ -444,14 +443,10 @@ def _safe_stem(original: str) -> str:
 
 
 def _base62_timestamp(timestamp: float) -> str:
-    return _base62_millisecond(round(timestamp * 1000))
-
-
-def _base62_millisecond(timestamp_millisecond: int) -> str:
-    value = timestamp_millisecond - TIMESTAMP_EPOCH_MS
+    value = int(timestamp) - TIMESTAMP_EPOCH
     limit = len(BASE62_ALPHABET) ** TIMESTAMP_WIDTH
     if not 0 <= value < limit:
-        raise ValueError("Timestamp is outside the seven-character InkLathe range")
+        raise ValueError("Timestamp is outside the five-character InkLathe range")
 
     encoded = ""
     for _ in range(TIMESTAMP_WIDTH):

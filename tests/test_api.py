@@ -373,10 +373,7 @@ def test_rejects_unconfigured_ai(tmp_path) -> None:
 
 
 def test_base62_timestamp_is_fixed_width_and_sortable() -> None:
-    assert _base62_timestamp(TIMESTAMP_EPOCH) == "0000000"
-    assert _base62_timestamp(TIMESTAMP_EPOCH + 0.001) == "0000001"
-    assert _base62_timestamp(TIMESTAMP_EPOCH + 0.061) == "000000z"
-    assert _base62_timestamp(TIMESTAMP_EPOCH + 0.062) == "0000010"
-    assert _base62_timestamp(TIMESTAMP_EPOCH + 0.001) < _base62_timestamp(
-        TIMESTAMP_EPOCH + 0.002
-    )
+    assert _base62_timestamp(TIMESTAMP_EPOCH) == "00000"
+    assert _base62_timestamp(TIMESTAMP_EPOCH + 61) == "0000z"
+    assert _base62_timestamp(TIMESTAMP_EPOCH + 62) == "00010"
+    assert _base62_timestamp(TIMESTAMP_EPOCH + 1) < _base62_timestamp(TIMESTAMP_EPOCH + 2)
