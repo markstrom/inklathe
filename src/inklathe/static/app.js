@@ -219,7 +219,6 @@ const activeRuns = new Map();
 let resultItems = [];
 let currentResultId = null;
 const textureLabels = {};
-const textureMaximums = {};
 const halftoneLabels = { none: "Solid ink" };
 
 function formatBytes(bytes) {
@@ -250,22 +249,15 @@ function halftoneDescription(halftone) {
   return halftoneLabels[halftone] || halftone;
 }
 
-function estimatedWearCoverage(value, texture) {
-  const maximum = textureMaximums[texture] || 15;
-  return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
-}
-
-function wearSummary(value, texture) {
-  const coverage = estimatedWearCoverage(value, texture);
-  const digits = coverage < 10 ? 1 : 0;
-  return `Wear ${value} · ${wearDescription(value)} · ~${coverage.toFixed(digits)}% ink`;
+function wearSummary(value) {
+  return `Wear ${wearDescription(value)}`;
 }
 
 function treatmentSummary(halftone, wear, texture) {
   const parts = [];
   if (halftone !== "none") parts.push(halftoneDescription(halftone));
   if (texture !== "none" && wear > 0) {
-    parts.push(textureDescription(texture), wearSummary(wear, texture));
+    parts.push(textureDescription(texture), wearSummary(wear));
   } else {
     parts.push("No wear");
   }
@@ -828,7 +820,6 @@ async function loadCapabilities({ refresh = false } = {}) {
     const groups = new Map();
     for (const texture of scanned) {
       textureLabels[texture.id] = texture.label;
-      textureMaximums[texture.id] = texture.maximum_percent;
       if (!groups.has(texture.category)) {
         const group = document.createElement("optgroup");
         group.label = texture.category;
