@@ -555,12 +555,13 @@ function updatePendingRun(run, job) {
       item.progressDetail = "";
     } else {
       const active = item.index === job.completed;
-      const step = job.progress?.step || 1;
-      const totalSteps = job.progress?.total_steps || 1;
+      const step = Number(job.progress?.step);
+      const totalSteps = Number(job.progress?.total_steps);
+      const hasStepProgress = step > 0 && totalSteps > 0;
       item.progress = active
-        ? `Processing step ${step} of ${totalSteps}`
+        ? (hasStepProgress ? `Processing step ${step} of ${totalSteps}` : "Processing")
         : `Queued image ${item.index + 1} of ${job.total}`;
-      item.progressDetail = active ? (job.progress?.label || "") : "";
+      item.progressDetail = active && hasStepProgress ? (job.progress?.label || "") : "";
     }
   }
   renderResults();

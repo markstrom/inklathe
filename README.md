@@ -263,9 +263,12 @@ in FIFO order with one image worker, which avoids loading multiple large models 
 Changing the controls after submitting a run does not change that queued run.
 
 Queued cards say `Waiting in queue` rather than exposing an internal run number. During
-processing, the active card reports a dynamic step count covering preparation and only
-the selected upscale, background, print-treatment, and wear/finalization stages. Cached
-stages complete immediately, so polling may visibly jump over them without delaying work.
+processing, the active card reports up to four user-facing steps: the selected upscale,
+background, print-treatment, and wear operations. Preparation and saving are included in
+the first and last selected operations. If no operation is selected, the single step is
+`Finalizing`. Cached stages complete immediately, so polling may visibly jump over them
+without delaying work. An older backend that does not report step progress is shown as
+`Processing` rather than the misleading `Processing step 1 of 1`.
 
 ## Local print masks
 

@@ -241,13 +241,14 @@ class JobStore:
         options: ProcessOptions,
         seed: int,
     ) -> None:
-        steps = iter(enumerate(_processing_steps(options), start=1))
+        steps = _processing_steps(options)
 
-        def begin_step() -> None:
-            job.current_step, job.step_label = next(steps)
+        def begin_step(label: str) -> None:
+            job.current_step = steps.index(label) + 1
+            job.step_label = label
 
         item.cache_hits = []
-        begin_step()
+        begin_step(steps[0])
         initial_options = ProcessOptions(
             background="none",
             upscale="none",
@@ -267,7 +268,7 @@ class JobStore:
         prepared_key = normalized_key
 
         if options.upscale == "ai":
-            begin_step()
+            begin_step("Upscaling")
             prepared_key = _cache_key(
                 "upscale-ai-v1",
                 normalized_key,
@@ -283,7 +284,7 @@ class JobStore:
                 ),
             )
         elif options.upscale == "lanczos":
-            begin_step()
+            begin_step("Upscaling")
             prepared_key = _cache_key("upscale-lanczos-v1", normalized_key, options.scale)
 
             def build_lanczos(destination: Path) -> None:
@@ -297,7 +298,7 @@ class JobStore:
             )
 
         if options.background == "lucida":
-            begin_step()
+            begin_step("Removing background")
             background_key = _cache_key(
                 "background-lucida-v1",
                 prepared_key,
@@ -314,7 +315,7 @@ class JobStore:
             )
             prepared_key = background_key
         elif options.background == "threshold":
-            begin_step()
+            begin_step("Removing background")
             background_options = ProcessOptions(
                 background="threshold",
                 upscale="none",
@@ -333,7 +334,7 @@ class JobStore:
             prepared_key = background_key
 
         if options.halftone != "none":
-            begin_step()
+            begin_step("Applying print treatment")
             profile = self.halftones.get(options.halftone)
             if profile is None:
                 raise ValueError(f"Halftone file is not installed: {options.halftone}")
@@ -366,7 +367,8 @@ class JobStore:
             )
             prepared_key = halftone_key
 
-        begin_step()
+        if options.texture != "none" and options.grunge > 0:
+            begin_step("Applying wear")
         with Image.open(prepared) as opened:
             bitmap = self.bitmap_textures.get(options.texture)
             final = apply_texture(
@@ -466,18 +468,17 @@ def _safe_name(original: str, index: int) -> str:
 
 
 def _processing_steps(options: ProcessOptions) -> list[str]:
-    steps = ["Preparing"]
+    steps = []
     if options.upscale != "none":
         steps.append("Upscaling")
     if options.background != "none":
         steps.append("Removing background")
     if options.halftone != "none":
         steps.append("Applying print treatment")
-    steps.append(
-        "Applying wear"
-        if options.texture != "none" and options.grunge > 0
-        else "Finalizing"
-    )
+    if options.texture != "none" and options.grunge > 0:
+        steps.append("Applying wear")
+    if not steps:
+        steps.append("Finalizing")
     return steps
 
 
