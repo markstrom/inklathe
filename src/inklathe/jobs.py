@@ -139,17 +139,14 @@ class JobStore:
 
     def _process_file(self, item: JobFile, options: ProcessOptions, seed: int) -> None:
         work = item.output_path.parent / f".{item.output_path.stem}-work.png"
-        if options.background == "lucida":
-            run_lucida(self.settings.lucida_command, item.input_path, work)
-        else:
-            builtin_options = ProcessOptions(
-                background=options.background,
-                upscale="none",
-                scale=1,
-                grunge=0,
-                seed=seed,
-            )
-            process_builtin(item.input_path, work, builtin_options)
+        initial_options = ProcessOptions(
+            background="none",
+            upscale="none",
+            scale=1,
+            grunge=0,
+            seed=seed,
+        )
+        process_builtin(item.input_path, work, initial_options)
 
         if options.upscale == "ai":
             upscaled = work.with_name(f"{work.stem}-upscaled.png")
@@ -160,6 +157,22 @@ class JobStore:
                 image = upscale_lanczos(opened, options.scale)
                 image.load()
             image.save(work, "PNG")
+
+        if options.background == "lucida":
+            background_removed = work.with_name(f"{work.stem}-background.png")
+            run_lucida(self.settings.lucida_command, work, background_removed)
+            shutil.move(background_removed, work)
+        elif options.background == "threshold":
+            background_options = ProcessOptions(
+                background="threshold",
+                upscale="none",
+                scale=1,
+                grunge=0,
+                seed=seed,
+            )
+            background_removed = work.with_name(f"{work.stem}-background.png")
+            process_builtin(work, background_removed, background_options)
+            shutil.move(background_removed, work)
 
         with Image.open(work) as opened:
             final = apply_grunge(opened, options.grunge, seed)

@@ -181,13 +181,13 @@ function renderRun(job) {
   const settings = document.createElement("div");
   settings.className = "run-settings";
   settings.append(
-    settingChip("Background", backgroundLabels[job.settings.background]),
     settingChip(
       "Upscaling",
       job.settings.upscale === "none"
         ? upscaleLabels.none
         : `${upscaleLabels[job.settings.upscale]} ${job.settings.scale}×`,
     ),
+    settingChip("Background", backgroundLabels[job.settings.background]),
     settingChip(
       "Grunge",
       `${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`,

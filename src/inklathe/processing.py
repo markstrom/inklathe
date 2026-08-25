@@ -129,12 +129,12 @@ def process_builtin(source: Path, destination: Path, options: ProcessOptions) ->
     with Image.open(source) as opened:
         image = ImageOps.exif_transpose(opened)
         image.load()
+    if options.upscale == "lanczos":
+        image = upscale_lanczos(image, options.scale)
     if options.background == "threshold":
         image = remove_light_background(image)
     else:
         image = image.convert("RGBA")
-    if options.upscale == "lanczos":
-        image = upscale_lanczos(image, options.scale)
     image = apply_grunge(image, options.grunge, options.seed)
     destination.parent.mkdir(parents=True, exist_ok=True)
     image.save(destination, format="PNG", optimize=True)

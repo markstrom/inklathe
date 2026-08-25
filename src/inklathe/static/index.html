@@ -23,13 +23,6 @@
         <div id="input-preview" class="preview-grid"></div>
 
         <section class="controls">
-          <label>Background
-            <select name="background" id="background">
-              <option value="threshold">Monochrome cutout</option>
-              <option value="lucida" id="lucida-option">Lucida AI</option>
-              <option value="none">Keep original</option>
-            </select>
-          </label>
           <label>Upscaling
             <select name="upscale" id="upscale">
               <option value="lanczos">Lanczos preview</option>
@@ -41,6 +34,13 @@
             <select name="scale">
               <option value="2">2×</option>
               <option value="4" selected>4×</option>
+            </select>
+          </label>
+          <label>Background
+            <select name="background" id="background">
+              <option value="threshold">Monochrome cutout</option>
+              <option value="lucida" id="lucida-option">Lucida AI</option>
+              <option value="none">Keep original</option>
             </select>
           </label>
           <label class="range-control">
