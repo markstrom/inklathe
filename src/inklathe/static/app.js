@@ -365,7 +365,9 @@ function setPreviewCompare(comparing) {
   previewZoom.classList.toggle("comparing", comparing);
   previewCompare.setAttribute("aria-pressed", String(comparing));
   previewCompare.setAttribute("aria-label", comparing ? "Hide original lens" : "Show original lens");
-  previewCompare.title = comparing ? "Hide original lens (C)" : "Show original lens (C)";
+  previewCompare.dataset.tooltip = comparing
+    ? "Hide original comparison (C)"
+    : "Compare with original (C)";
   if (!comparing) previewZoom.classList.remove("pointer-inside");
 }
 

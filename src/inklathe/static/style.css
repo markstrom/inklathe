@@ -168,6 +168,11 @@ dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
 .dialog-icon { display: grid; width: 42px; height: 42px; padding: 0; place-items: center; border: 1px solid var(--line); background: var(--control-overlay); color: var(--paper); font-size: 1.5rem; text-decoration: none; }
 .dialog-icon:hover { border-color: var(--acid); color: var(--acid); }
 .dialog-icon[aria-pressed="true"] { border-color: var(--acid); color: var(--acid); }
+[data-tooltip] { position: relative; }
+[data-tooltip]::after { content: attr(data-tooltip); position: absolute; z-index: 20; top: calc(100% + 8px); left: 50%; width: max-content; max-width: min(240px, 75vw); padding: 7px 9px; border: 1px solid var(--line); background: var(--surface-solid); color: var(--paper); box-shadow: 3px 3px 0 var(--shadow); font: 700 .64rem/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0; text-align: center; text-transform: none; white-space: normal; opacity: 0; pointer-events: none; transform: translate(-50%, -4px); transition: opacity .12s ease, transform .12s ease; }
+[data-tooltip]:hover::after, [data-tooltip]:focus-visible::after { opacity: 1; transform: translate(-50%, 0); transition-delay: .18s; }
+.dialog-actions [data-tooltip]::after { right: 0; left: auto; transform: translateY(-4px); }
+.dialog-actions [data-tooltip]:hover::after, .dialog-actions [data-tooltip]:focus-visible::after { transform: translateY(0); }
 .dialog-nav { position: absolute; z-index: 2; top: 50%; width: 46px; height: 58px; padding: 0; transform: translateY(-50%); border: 1px solid var(--line); background: var(--control-overlay); color: var(--paper); font-size: 1.5rem; }
 .dialog-nav:hover { border-color: var(--acid); color: var(--acid); }
 .dialog-nav:disabled { opacity: .2; cursor: default; }

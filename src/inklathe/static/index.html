@@ -107,19 +107,19 @@
     </main>
 
     <dialog id="preview-dialog">
-      <button id="preview-previous" class="dialog-nav dialog-previous" type="button" aria-label="Previous result">←</button>
-      <button id="preview-next" class="dialog-nav dialog-next" type="button" aria-label="Next result">→</button>
+      <button id="preview-previous" class="dialog-nav dialog-previous" type="button" aria-label="Previous result" data-tooltip="Previous result (Left arrow)">←</button>
+      <button id="preview-next" class="dialog-nav dialog-next" type="button" aria-label="Next result" data-tooltip="Next result (Right arrow)">→</button>
       <div class="dialog-actions">
-        <button id="preview-compare" class="dialog-icon" type="button" aria-label="Show original lens" aria-pressed="false" title="Show original lens (C)">
+        <button id="preview-compare" class="dialog-icon" type="button" aria-label="Show original lens" aria-pressed="false" data-tooltip="Compare with original (C)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5M11 4v14"/></svg>
         </button>
-        <a id="preview-download" class="dialog-icon" download aria-label="Download result" title="Download result">
+        <a id="preview-download" class="dialog-icon" download aria-label="Download result" data-tooltip="Download result">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14"/></svg>
         </a>
-        <button id="preview-delete" class="dialog-icon danger" type="button" aria-label="Delete result" title="Delete result (Alt-click to skip confirmation)">
+        <button id="preview-delete" class="dialog-icon danger" type="button" aria-label="Delete result" data-tooltip="Delete result (Alt-click skips confirmation)">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6"/></svg>
         </button>
-        <button id="preview-close" class="dialog-icon dialog-close" type="button" aria-label="Close preview" title="Close preview">×</button>
+        <button id="preview-close" class="dialog-icon dialog-close" type="button" aria-label="Close preview" data-tooltip="Close preview (Esc)">×</button>
       </div>
       <button id="preview-zoom" class="preview-zoom" type="button" aria-label="Zoom in" aria-pressed="false" title="Click to zoom in">
         <img id="preview-large" class="preview-result" alt="">
