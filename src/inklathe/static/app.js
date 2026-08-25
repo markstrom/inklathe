@@ -31,11 +31,19 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function grungeDescription(value) {
+function wearDescription(value) {
   if (value === 0) return "none";
   if (value <= 25) return "light";
   if (value <= 60) return "pronounced";
   return "heavy";
+}
+
+function textureDescription(texture) {
+  return {
+    "paper-fibers": "Paper fibers",
+    "dry-ink": "Dry ink",
+    scratches: "Scratches",
+  }[texture] || texture;
 }
 
 function sourceId(file) {
@@ -235,10 +243,10 @@ async function deleteResult(id, skipConfirmation = false) {
 }
 
 fileInput.addEventListener("change", () => addRecentSources([...fileInput.files]));
-const grungeSlider = document.querySelector("#grunge");
-grungeSlider.addEventListener("input", (event) => {
+const wearSlider = document.querySelector("#wear");
+wearSlider.addEventListener("input", (event) => {
   const value = Number(event.target.value);
-  document.querySelector("#grunge-value").textContent = `${value} · ${grungeDescription(value)}`;
+  document.querySelector("#wear-value").textContent = `${value} · ${wearDescription(value)}`;
 });
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {
@@ -341,13 +349,13 @@ async function poll(jobId) {
 function renderRun(job) {
   const newItems = job.files.map((file) => {
     const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
-    const grunge = `Grunge ${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`;
+    const wear = `${textureDescription(job.settings.texture)} · Wear ${job.settings.grunge} · ${wearDescription(job.settings.grunge)}`;
     return {
       id: `${job.id}:${file.index}`,
       name: file.name,
       url: file.download,
       deleteUrl: file.delete,
-      meta: `${size} · ${grunge}`,
+      meta: `${size} · ${wear}`,
     };
   });
   resultItems = [...newItems, ...resultItems];

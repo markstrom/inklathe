@@ -13,7 +13,7 @@ from PIL import Image
 
 from .adapters import run_ai_upscaler, run_lucida
 from .config import Settings
-from .processing import ProcessOptions, apply_grunge, process_builtin, upscale_lanczos
+from .processing import ProcessOptions, apply_texture, process_builtin, upscale_lanczos
 
 BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 TIMESTAMP_EPOCH = 1767225600  # 2026-01-01 00:00:00 UTC
@@ -58,6 +58,7 @@ class Job:
                 "scale": self.options.scale,
                 "grunge": self.options.grunge,
                 "seed": self.options.seed,
+                "texture": self.options.texture,
             },
             "files": [
                 {
@@ -201,7 +202,7 @@ class JobStore:
             shutil.move(background_removed, work)
 
         with Image.open(work) as opened:
-            final = apply_grunge(opened, options.grunge, seed)
+            final = apply_texture(opened, options.grunge, options.texture, seed)
             final.load()
         final.save(item.output_path, "PNG", optimize=True)
         item.output_width, item.output_height = final.size

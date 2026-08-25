@@ -47,6 +47,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scale: Annotated[int, Form()] = 4,
         grunge: Annotated[int, Form()] = 0,
         seed: Annotated[int, Form()] = 1,
+        texture: Annotated[str, Form()] = "paper-fibers",
     ) -> dict:
         if not 1 <= len(files) <= 20:
             raise HTTPException(400, "Upload between 1 and 20 images")
@@ -55,7 +56,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if upscale not in {"none", "lanczos", "ai"} or scale not in {1, 2, 4}:
             raise HTTPException(400, "Unsupported upscale mode")
         if not 0 <= grunge <= 100:
-            raise HTTPException(400, "Grunge must be between 0 and 100")
+            raise HTTPException(400, "Wear must be between 0 and 100")
+        if texture not in {"paper-fibers", "dry-ink", "scratches"}:
+            raise HTTPException(400, "Unsupported texture")
         if background == "lucida" and not settings.lucida_command:
             raise HTTPException(409, "Lucida is not installed on this worker")
         if upscale == "ai" and not settings.ai_upscaler_command:
@@ -69,7 +72,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             _validate_image(content, upload.filename or "image")
             uploads.append((upload.filename or "image", content))
 
-        options = ProcessOptions(background, upscale, scale, grunge, seed)
+        options = ProcessOptions(background, upscale, scale, grunge, seed, texture)
         return store.create(uploads, options).public()
 
     @api.get("/api/jobs/{job_id}")

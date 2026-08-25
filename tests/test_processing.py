@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw
 from inklathe.processing import (
     ProcessOptions,
     apply_grunge,
+    apply_texture,
     process_builtin,
     remove_light_background,
 )
@@ -37,6 +38,15 @@ def test_low_grunge_is_lighter_than_high_grunge() -> None:
     heavy_alpha = sum(heavy.get_flattened_data())
     assert light_alpha > heavy_alpha
     assert (source_alpha - light_alpha) / source_alpha < 0.02
+
+
+def test_texture_profiles_are_distinct() -> None:
+    source = remove_light_background(logo())
+    results = {
+        apply_texture(source, 60, texture, 42).tobytes()
+        for texture in ("paper-fibers", "dry-ink", "scratches")
+    }
+    assert len(results) == 3
 
 
 def test_pipeline_upscales_and_writes_png(tmp_path: Path) -> None:

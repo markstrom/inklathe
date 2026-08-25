@@ -49,7 +49,7 @@ form, .status, .results { border: 1px solid var(--line); background: rgba(25,25,
 .source-preview figcaption { overflow: hidden; padding: 4px 5px; color: #aaa69c; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
 .processing-badge { position: absolute; inset: auto 3px 3px; padding: 2px 3px; background: var(--acid); color: #111; font: 700 .48rem Arial, sans-serif; letter-spacing: .04em; text-transform: uppercase; }
 .processing-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 12px; }
-.controls { display: grid; grid-template-columns: 1.15fr .55fr 1.15fr 1.65fr .75fr; gap: 10px; margin: 0; }
+.controls { display: grid; grid-template-columns: 1.1fr .5fr 1.1fr 1fr 1.55fr .7fr; gap: 10px; margin: 0; }
 label { display: grid; gap: 4px; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }
 select, input[type="number"] { width: 100%; min-height: 38px; border: 1px solid var(--line); border-radius: 0; background: #0d0d0d; color: var(--paper); padding: 8px; }
 button, .button { border: 0; border-radius: 0; background: var(--acid); color: #111; padding: 11px 18px; font: 800 .8rem Arial, sans-serif; text-transform: uppercase; cursor: pointer; text-decoration: none; }

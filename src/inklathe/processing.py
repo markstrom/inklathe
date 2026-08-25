@@ -4,7 +4,14 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
+from PIL import Image, ImageChops, ImageOps
+
+TEXTURE_DIR = Path(__file__).parent / "assets" / "textures"
+TEXTURE_PATHS = {
+    "paper-fibers": TEXTURE_DIR / "paper-fibers.png",
+    "dry-ink": TEXTURE_DIR / "dry-ink.png",
+    "scratches": TEXTURE_DIR / "scratches.png",
+}
 
 
 @dataclass(frozen=True)
@@ -14,6 +21,7 @@ class ProcessOptions:
     scale: int = 4
     grunge: int = 0
     seed: int = 1
+    texture: str = "paper-fibers"
 
 
 def otsu_threshold(image: Image.Image) -> int:
@@ -70,59 +78,53 @@ def upscale_lanczos(image: Image.Image, scale: int) -> Image.Image:
     return image.resize((image.width * scale, image.height * scale), Image.Resampling.LANCZOS)
 
 
-def apply_grunge(image: Image.Image, amount: int, seed: int) -> Image.Image:
-    """Deterministically erode opaque regions to create printable wear."""
+def apply_texture(
+    image: Image.Image, amount: int, texture: str = "paper-fibers", seed: int = 1
+) -> Image.Image:
+    """Erode opaque regions with a deterministic bitmap texture mask."""
     if amount <= 0:
         return image.convert("RGBA")
+    if texture not in TEXTURE_PATHS:
+        raise ValueError(f"Unknown texture: {texture}")
+
     amount = min(100, amount)
     rgba = image.convert("RGBA")
     alpha = rgba.getchannel("A")
     rng = random.Random(seed)
-    damage = Image.new("L", rgba.size, 0)
-    draw = ImageDraw.Draw(damage)
-    area = rgba.width * rgba.height
-    short_side = max(1, min(rgba.size))
+
+    with Image.open(TEXTURE_PATHS[texture]) as opened:
+        damage = ImageOps.grayscale(opened)
+        damage.load()
+    if texture == "dry-ink":
+        damage = ImageOps.invert(damage)
+    damage = ImageOps.autocontrast(damage, cutoff=1)
+    damage = damage.rotate(rng.choice((0, 90, 180, 270)))
+    if rng.choice((False, True)):
+        damage = ImageOps.mirror(damage)
+    if rng.choice((False, True)):
+        damage = ImageOps.flip(damage)
+    damage = ImageOps.fit(
+        damage,
+        rgba.size,
+        method=Image.Resampling.LANCZOS,
+        centering=(rng.random(), rng.random()),
+    )
+
     strength = amount / 100
-    aspect_density = area / (short_side * short_side)
-    foreground_bounds = alpha.getbbox() or (0, 0, rgba.width, rgba.height)
-    marks = max(1, round((20 + 250 * aspect_density) * strength**1.6))
-    min_radius = max(1, round(short_side * (0.001 + 0.0015 * strength)))
-    max_radius = max(min_radius + 1, round(short_side * (0.0025 + 0.018 * strength)))
-    damage_low = round(30 + 85 * strength)
-    damage_high = round(70 + 185 * strength)
-
-    for _ in range(marks):
-        radius = rng.randint(min_radius, max_radius)
-        x, y = _foreground_point(alpha, foreground_bounds, rng)
-        stretch = rng.uniform(0.35, 2.8)
-        box = (x - radius * stretch, y - radius, x + radius * stretch, y + radius)
-        draw.ellipse(box, fill=rng.randint(damage_low, damage_high))
-
-    speckles = max(1, round((30 + 400 * aspect_density) * strength**1.8))
-    max_length = max(2, round(short_side * (0.001 + 0.01 * strength)))
-    for _ in range(speckles):
-        length = rng.randint(1, max_length)
-        x, y = _foreground_point(alpha, foreground_bounds, rng)
-        draw.line(
-            (x, y, min(rgba.width - 1, x + length), y + rng.randint(-2, 2)),
-            fill=rng.randint(damage_low, damage_high),
-            width=max(1, round(short_side * (0.0005 + 0.002 * strength))),
-        )
-    damage = damage.filter(ImageFilter.GaussianBlur(0.35))
+    threshold = round(252 - 190 * strength)
+    opacity = min(1, 0.35 + 0.85 * strength)
+    scale = 255 * opacity / max(1, 255 - threshold)
+    damage = damage.point(
+        lambda value: 0 if value <= threshold else min(255, round((value - threshold) * scale))
+    )
     damaged_alpha = ImageChops.subtract(alpha, ImageChops.multiply(alpha, damage))
     rgba.putalpha(damaged_alpha)
     return rgba
 
 
-def _foreground_point(
-    alpha: Image.Image, bounds: tuple[int, int, int, int], rng: random.Random
-) -> tuple[int, int]:
-    left, top, right, bottom = bounds
-    for _ in range(40):
-        point = (rng.randrange(left, right), rng.randrange(top, bottom))
-        if alpha.getpixel(point) > 32:
-            return point
-    return (rng.randrange(left, right), rng.randrange(top, bottom))
+def apply_grunge(image: Image.Image, amount: int, seed: int) -> Image.Image:
+    """Compatibility wrapper for the original public helper."""
+    return apply_texture(image, amount, "paper-fibers", seed)
 
 
 def process_builtin(source: Path, destination: Path, options: ProcessOptions) -> None:
@@ -135,6 +137,6 @@ def process_builtin(source: Path, destination: Path, options: ProcessOptions) ->
         image = remove_light_background(image)
     else:
         image = image.convert("RGBA")
-    image = apply_grunge(image, options.grunge, options.seed)
+    image = apply_texture(image, options.grunge, options.texture, options.seed)
     destination.parent.mkdir(parents=True, exist_ok=True)
     image.save(destination, format="PNG", optimize=True)

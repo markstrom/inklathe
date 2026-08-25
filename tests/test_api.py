@@ -30,7 +30,12 @@ def test_job_round_trip(tmp_path) -> None:
         response = client.post(
             "/api/jobs",
             files=[("files", ("logo.png", image_bytes(), "image/png"))],
-            data={"background": "threshold", "upscale": "lanczos", "scale": 2},
+            data={
+                "background": "threshold",
+                "upscale": "lanczos",
+                "scale": 2,
+                "texture": "scratches",
+            },
         )
         assert response.status_code == 202
         job_id = response.json()["id"]
@@ -40,6 +45,7 @@ def test_job_round_trip(tmp_path) -> None:
                 break
             sleep(0.02)
         assert job["state"] == "complete"
+        assert job["settings"]["texture"] == "scratches"
         result_name = job["files"][0]["name"]
         assert result_name.startswith("logo-")
         assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
