@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -107,6 +108,72 @@ BITMAP_TEXTURE_PROFILES = {
     },
 }
 
+# Halftone scans are also user-installed and intentionally excluded from the
+# repository. ``invert`` describes scans whose printable marks are dark on a
+# light background; the generated alpha mask always uses white for printed ink.
+HALFTONE_PROFILES = {
+    "halftone-g356": {
+        "filename": "Texturelabs_Grunge_356XL.jpg",
+        "label": "Newspaper photo",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g354": {
+        "filename": "Texturelabs_Grunge_354XL.jpg",
+        "label": "Newspaper pattern",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g351": {
+        "filename": "Texturelabs_Grunge_351XL.jpg",
+        "label": "Tiny halftone overlay",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g340": {
+        "filename": "Texturelabs_Grunge_340XL.jpg",
+        "label": "Fine vintage halftone",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g289": {
+        "filename": "Texturelabs_Grunge_289XL.jpg",
+        "label": "Black halftone floodcoat",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g290": {
+        "filename": "Texturelabs_Grunge_290XL.jpg",
+        "label": "Distressed halftone print",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g246": {
+        "filename": "Texturelabs_Grunge_246XL.jpg",
+        "label": "Light dots pattern",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g242": {
+        "filename": "Texturelabs_Grunge_242XL.jpg",
+        "label": "Printed halftone gradient",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g234": {
+        "filename": "Texturelabs_Grunge_234XL.jpg",
+        "label": "Small dots halftone",
+        "category": "Halftone",
+        "invert": True,
+    },
+    "halftone-g283": {
+        "filename": "Texturelabs_Grunge_283XL.jpg",
+        "label": "Detailed money pattern",
+        "category": "Engraved",
+        "invert": True,
+    },
+}
+
 
 def available_bitmap_textures(texture_dir: Path | None) -> dict[str, dict[str, object]]:
     if texture_dir is None:
@@ -118,6 +185,27 @@ def available_bitmap_textures(texture_dir: Path | None) -> dict[str, dict[str, o
     }
 
 
+def available_halftones(texture_dir: Path | None) -> dict[str, dict[str, object]]:
+    if texture_dir is None:
+        return {}
+    return {
+        key: {**profile, "path": texture_dir / str(profile["filename"])}
+        for key, profile in HALFTONE_PROFILES.items()
+        if (texture_dir / str(profile["filename"])).is_file()
+    }
+
+
+def _load_grayscale_scan(path: Path) -> Image.Image:
+    # Configured local masks are trusted assets, unlike images uploaded through
+    # the public endpoint, and several XL scans intentionally exceed 40 MP.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+        with Image.open(path) as opened:
+            grayscale = ImageOps.grayscale(ImageOps.exif_transpose(opened))
+            grayscale.load()
+    return grayscale
+
+
 @dataclass(frozen=True)
 class ProcessOptions:
     background: str = "threshold"
@@ -126,6 +214,7 @@ class ProcessOptions:
     grunge: int = 0
     seed: int = 1
     texture: str = "scan-g306"
+    halftone: str = "none"
 
 
 def otsu_threshold(image: Image.Image) -> int:
@@ -182,6 +271,47 @@ def upscale_lanczos(image: Image.Image, scale: int) -> Image.Image:
     return image.resize((image.width * scale, image.height * scale), Image.Resampling.LANCZOS)
 
 
+def apply_halftone(
+    image: Image.Image,
+    treatment: str = "none",
+    seed: int = 1,
+    *,
+    texture_path: Path | None = None,
+    invert: bool = False,
+) -> Image.Image:
+    """Screen existing ink through a scanned, binary print pattern."""
+    if treatment == "none":
+        return image.convert("RGBA")
+    if texture_path is None:
+        raise ValueError(f"Halftone file is not installed: {treatment}")
+
+    rgba = image.convert("RGBA")
+    rng = random.Random(seed)
+    scan = _load_grayscale_scan(texture_path)
+
+    # Remove incidental scanner edges while retaining one non-repeating field.
+    margin_x = round(scan.width * 0.02)
+    margin_y = round(scan.height * 0.02)
+    scan = scan.crop((margin_x, margin_y, scan.width - margin_x, scan.height - margin_y))
+    if rng.random() < 0.5:
+        scan = ImageOps.mirror(scan)
+    if rng.random() < 0.5:
+        scan = ImageOps.flip(scan)
+    mask = ImageOps.fit(
+        scan,
+        rgba.size,
+        method=Image.Resampling.LANCZOS,
+        centering=(rng.uniform(0.35, 0.65), rng.uniform(0.35, 0.65)),
+    )
+    mask = ImageOps.autocontrast(mask, cutoff=0.5)
+    if invert:
+        mask = ImageOps.invert(mask)
+    mask = mask.point(lambda value: 255 if value >= 128 else 0)
+
+    rgba.putalpha(ImageChops.multiply(rgba.getchannel("A"), mask))
+    return rgba
+
+
 def apply_texture(
     image: Image.Image,
     amount: int,
@@ -221,9 +351,7 @@ def _bitmap_texture_score(
     texture_path: Path, size: tuple[int, int], rng: random.Random
 ) -> Image.Image:
     """Turn a licensed, user-installed grayscale scan into a deterministic wear field."""
-    with Image.open(texture_path) as opened:
-        grayscale = ImageOps.grayscale(ImageOps.exif_transpose(opened))
-        grayscale.load()
+    grayscale = _load_grayscale_scan(texture_path)
 
     # Texture scans often contain hard frame shadows. Use the useful central 89%.
     margin_x = round(grayscale.width * 0.055)

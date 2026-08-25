@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw
 
 from inklathe.processing import (
     ProcessOptions,
+    apply_halftone,
     apply_texture,
     process_builtin,
     remove_light_background,
@@ -55,6 +56,26 @@ def test_bitmap_texture_is_reproducible_and_calibrated(tmp_path: Path) -> None:
     extreme_removed = extreme.getchannel("A").get_flattened_data().count(0) / pixels
     assert abs(subtle_removed - 0.12 * 0.25**1.55) < 0.002
     assert abs(extreme_removed - 0.12) < 0.002
+
+
+def test_halftone_scan_becomes_binary_ink_mask(tmp_path: Path) -> None:
+    texture = tmp_path / "halftone.jpg"
+    scan = Image.new("L", (300, 220), 0)
+    draw = ImageDraw.Draw(scan)
+    for x in range(12, 290, 18):
+        draw.ellipse((x, 40, x + 7, 180), fill=255)
+    scan.save(texture)
+    source = Image.new("RGBA", (256, 256), (0, 0, 0, 255))
+
+    first = apply_halftone(
+        source, "local-halftone", 42, texture_path=texture, invert=False
+    )
+    repeated = apply_halftone(
+        source, "local-halftone", 42, texture_path=texture, invert=False
+    )
+
+    assert first.tobytes() == repeated.tobytes()
+    assert set(first.getchannel("A").get_flattened_data()) == {0, 255}
 
 
 def test_pipeline_upscales_and_writes_png(tmp_path: Path) -> None:

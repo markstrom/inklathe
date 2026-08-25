@@ -31,6 +31,7 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "Vintage mix" not in response.text
     assert '<option value="25">Subtle</option>' in response.text
     assert '<option value="50">Worn</option>' in response.text
+    assert '<option value="none">Solid ink</option>' in response.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text
@@ -73,6 +74,9 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
     texture_dir = tmp_path / "textures"
     texture_dir.mkdir()
     Image.new("L", (80, 80), 255).save(texture_dir / "Grunge_306XL.jpg")
+    Image.new("L", (80, 80), 127).save(
+        texture_dir / "Texturelabs_Grunge_356XL.jpg"
+    )
     settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
 
     with TestClient(create_app(settings)) as client:
@@ -80,7 +84,12 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
         response = client.post(
             "/api/jobs",
             files=[("files", ("logo.png", image_bytes(), "image/png"))],
-            data={"upscale": "none", "grunge": 40, "texture": "scan-g306"},
+            data={
+                "upscale": "none",
+                "grunge": 40,
+                "texture": "scan-g306",
+                "halftone": "halftone-g356",
+            },
         )
 
     assert health["capabilities"]["bitmap_textures"] == [
@@ -89,6 +98,14 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
             "label": "Heavy screen ink · G306",
             "category": "Screen print",
             "maximum_percent": 12.0,
+            "kind": "scanned",
+        }
+    ]
+    assert health["capabilities"]["halftones"] == [
+        {
+            "id": "halftone-g356",
+            "label": "Newspaper photo",
+            "category": "Halftone",
             "kind": "scanned",
         }
     ]
@@ -120,6 +137,9 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
     texture_dir = tmp_path / "textures"
     texture_dir.mkdir()
     Image.new("L", (80, 80), 255).save(texture_dir / "Grunge_306XL.jpg")
+    Image.new("L", (80, 80), 127).save(
+        texture_dir / "Texturelabs_Grunge_356XL.jpg"
+    )
     settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
     with TestClient(create_app(settings)) as client:
         common_data = {
@@ -127,6 +147,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             "upscale": "lanczos",
             "scale": 2,
             "texture": "scan-g306",
+            "halftone": "halftone-g356",
         }
         first_response = client.post(
             "/api/jobs",
@@ -143,7 +164,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
 
         cached_files = list((settings.data_dir / "cache").glob("*/*.png"))
         cached_inodes = {path: path.stat().st_ino for path in cached_files}
-        assert len(cached_files) == 3
+        assert len(cached_files) == 4
 
         second_response = client.post(
             "/api/jobs",
@@ -161,6 +182,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             "normalized",
             "upscale",
             "background",
+            "print-treatment",
         ]
         assert {path: path.stat().st_ino for path in cached_files} == cached_inodes
 

@@ -79,6 +79,7 @@ let resultItems = [];
 let currentResultId = null;
 const textureLabels = {};
 const textureMaximums = {};
+const halftoneLabels = { none: "Solid ink" };
 
 function formatBytes(bytes) {
   if (bytes === null || bytes === undefined) return "";
@@ -105,6 +106,10 @@ function textureMenuLabel(label) {
   return label.replace(/\s*·\s*G\d+\s*$/, "");
 }
 
+function halftoneDescription(halftone) {
+  return halftoneLabels[halftone] || halftone;
+}
+
 function estimatedWearCoverage(value, texture) {
   const maximum = textureMaximums[texture] || 15;
   return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
@@ -115,6 +120,13 @@ function wearSummary(value, texture) {
   const coverage = estimatedWearCoverage(value, texture);
   const digits = coverage < 10 ? 1 : 0;
   return `Wear ${value} · ${wearDescription(value)} · ~${coverage.toFixed(digits)}% ink`;
+}
+
+function treatmentSummary(halftone, wear, texture) {
+  const parts = [];
+  if (halftone !== "none") parts.push(halftoneDescription(halftone));
+  parts.push(textureDescription(texture), wearSummary(wear, texture));
+  return parts.join(" · ");
 }
 
 function sourceId(file) {
@@ -307,7 +319,11 @@ function renderResults() {
 function addPendingRun(batch) {
   const token = Date.now();
   const wear = Number(wearSelect.value);
-  const settings = `${textureDescription(textureSelect.value)} · ${wearSummary(wear, textureSelect.value)}`;
+  const settings = treatmentSummary(
+    halftoneSelect.value,
+    wear,
+    textureSelect.value,
+  );
   activePendingItems = batch.map((source, index) => ({
     id: `pending:${token}:${index}`,
     pending: true,
@@ -322,7 +338,11 @@ function addPendingRun(batch) {
 
 function resultFromFile(job, file) {
   const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
-  const wear = `${textureDescription(job.settings.texture)} · ${wearSummary(job.settings.grunge, job.settings.texture)}`;
+  const treatment = treatmentSummary(
+    job.settings.halftone || "none",
+    job.settings.grunge,
+    job.settings.texture,
+  );
   return {
     id: `${job.id}:${file.index}`,
     pending: false,
@@ -332,7 +352,7 @@ function resultFromFile(job, file) {
     url: file.download,
     sourceUrl: file.source,
     deleteUrl: file.delete,
-    meta: `${size} · ${wear}`,
+    meta: `${size} · ${treatment}`,
   };
 }
 
@@ -459,6 +479,7 @@ clearSourceSelection.addEventListener("click", () => {
 });
 const wearSelect = document.querySelector("#wear");
 const textureSelect = document.querySelector("#texture");
+const halftoneSelect = document.querySelector("#halftone");
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {
   setPreviewZoom(!previewZoom.classList.contains("zoomed"));
@@ -516,6 +537,21 @@ async function loadCapabilities() {
   ai.disabled = !health.capabilities.ai_upscaler;
   lucida.textContent += lucida.disabled ? " — not installed" : " — ready";
   ai.textContent += ai.disabled ? " — not installed" : " — ready";
+  const halftones = health.capabilities.halftones || [];
+  const halftoneGroups = new Map();
+  for (const treatment of halftones) {
+    halftoneLabels[treatment.id] = treatment.label;
+    if (!halftoneGroups.has(treatment.category)) {
+      const group = document.createElement("optgroup");
+      group.label = treatment.category;
+      halftoneGroups.set(treatment.category, group);
+    }
+    const option = document.createElement("option");
+    option.value = treatment.id;
+    option.textContent = treatment.label;
+    halftoneGroups.get(treatment.category).append(option);
+  }
+  halftoneSelect.append(...halftoneGroups.values());
   const scanned = health.capabilities.bitmap_textures || [];
   if (scanned.length > 0) {
     const groups = new Map();

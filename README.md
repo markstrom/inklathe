@@ -14,6 +14,7 @@ InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
 - Preview and compare results
 - AI-based image upscaling
 - AI-based background removal
+- Optional scanned halftone and engraved print treatments
 - Reproducible print wear using locally installed scan masks
 - Download individual PNG files or a batch archive
 - Keep downloads sortable with `original-name-00000.png` style Base62 timestamps
@@ -62,7 +63,7 @@ Set `INKLATHE_MAX_DATA_GB` to change the total storage ceiling. When the limit i
 reached, InkLathe cleans down to 90%, evicting cache files before completed jobs.
 The current and queued jobs are always protected. Set it to `0` to disable cleanup.
 
-### Local print-wear masks
+### Local print masks
 
 InkLathe can use high-resolution grayscale texture scans without redistributing them.
 Place licensed copies in `$INKLATHE_DATA_DIR/textures` (the default) or set
@@ -74,6 +75,14 @@ installed `Grunge_141XL.jpg`, `Grunge_197XL.jpg`, `Grunge_198XL.jpg`,
 Detected masks appear first in the Wear style menu. The app converts dark scanned
 marks into binary transparent ink knockouts, uses one large non-tiled crop, and keeps
 the result reproducible through Wear seed.
+
+The optional Print treatment menu recognizes `Texturelabs_Grunge_234XL.jpg`,
+`Texturelabs_Grunge_242XL.jpg`, `Texturelabs_Grunge_246XL.jpg`,
+`Texturelabs_Grunge_283XL.jpg`, `Texturelabs_Grunge_289XL.jpg`,
+`Texturelabs_Grunge_290XL.jpg`, `Texturelabs_Grunge_340XL.jpg`,
+`Texturelabs_Grunge_351XL.jpg`, `Texturelabs_Grunge_354XL.jpg`, and
+`Texturelabs_Grunge_356XL.jpg` in the same directory. These masks screen the isolated
+ink into binary printable dots or engraved lines before the selected wear is applied.
 
 Do not commit third-party texture files unless their license explicitly permits
 redistribution as part of an image-processing application.

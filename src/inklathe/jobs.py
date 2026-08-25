@@ -17,8 +17,10 @@ from .adapters import run_ai_upscaler, run_lucida
 from .config import Settings
 from .processing import (
     ProcessOptions,
+    apply_halftone,
     apply_texture,
     available_bitmap_textures,
+    available_halftones,
     process_builtin,
     upscale_lanczos,
 )
@@ -71,6 +73,7 @@ class Job:
                 "grunge": self.options.grunge,
                 "seed": self.options.seed,
                 "texture": self.options.texture,
+                "halftone": self.options.halftone,
             },
             "files": [
                 {
@@ -108,6 +111,7 @@ class JobStore:
         self.lock = Lock()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="inklathe-worker")
         self.bitmap_textures = available_bitmap_textures(settings.texture_dir)
+        self.halftones = available_halftones(settings.texture_dir)
 
     def create(self, uploads: list[tuple[str, bytes]], options: ProcessOptions) -> Job:
         created_at = time()
@@ -256,6 +260,7 @@ class JobStore:
                     self.settings.lucida_command, source, destination
                 ),
             )
+            prepared_key = background_key
         elif options.background == "threshold":
             background_options = ProcessOptions(
                 background="threshold",
@@ -272,6 +277,40 @@ class JobStore:
                 background_key,
                 lambda destination: process_builtin(source, destination, background_options),
             )
+            prepared_key = background_key
+
+        if options.halftone != "none":
+            profile = self.halftones.get(options.halftone)
+            if profile is None:
+                raise ValueError(f"Halftone file is not installed: {options.halftone}")
+            path = Path(str(profile["path"]))
+            stat = path.stat()
+            halftone_key = _cache_key(
+                "halftone-v1",
+                prepared_key,
+                options.halftone,
+                seed,
+                stat.st_size,
+                stat.st_mtime_ns,
+            )
+            source = prepared
+
+            def build_halftone(destination: Path) -> None:
+                with Image.open(source) as opened:
+                    image = apply_halftone(
+                        opened,
+                        options.halftone,
+                        seed,
+                        texture_path=path,
+                        invert=bool(profile["invert"]),
+                    )
+                    image.load()
+                image.save(destination, "PNG", optimize=True)
+
+            prepared = self._cached_stage(
+                item, "print-treatment", halftone_key, build_halftone
+            )
+            prepared_key = halftone_key
 
         with Image.open(prepared) as opened:
             bitmap = self.bitmap_textures.get(options.texture)

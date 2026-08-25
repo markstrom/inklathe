@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
 from .jobs import JobStore
-from .processing import ProcessOptions, available_bitmap_textures
+from .processing import ProcessOptions, available_bitmap_textures, available_halftones
 
 PACKAGE_DIR = Path(__file__).parent
 
@@ -21,6 +21,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     Image.MAX_IMAGE_PIXELS = settings.max_pixels
     store = JobStore(settings)
     bitmap_textures = available_bitmap_textures(settings.texture_dir)
+    halftones = available_halftones(settings.texture_dir)
     api = FastAPI(title="InkLathe", version="0.1.0")
     api.state.settings = settings
     api.state.jobs = store
@@ -49,6 +50,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     }
                     for key, profile in bitmap_textures.items()
                 ],
+                "halftones": [
+                    {
+                        "id": key,
+                        "label": str(profile["label"]),
+                        "category": str(profile["category"]),
+                        "kind": "scanned",
+                    }
+                    for key, profile in halftones.items()
+                ],
             },
         }
 
@@ -61,6 +71,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         grunge: Annotated[int, Form()] = 0,
         seed: Annotated[int, Form()] = 1,
         texture: Annotated[str, Form()] = "scan-g306",
+        halftone: Annotated[str, Form()] = "none",
     ) -> dict:
         if not 1 <= len(files) <= 20:
             raise HTTPException(400, "Upload between 1 and 20 images")
@@ -72,6 +83,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(400, "Wear must be between 0 and 100")
         if grunge > 0 and texture not in bitmap_textures:
             raise HTTPException(400, "Unsupported texture")
+        if halftone != "none" and halftone not in halftones:
+            raise HTTPException(400, "Unsupported print treatment")
         if background == "lucida" and not settings.lucida_command:
             raise HTTPException(409, "Lucida is not installed on this worker")
         if upscale == "ai" and not settings.ai_upscaler_command:
@@ -85,7 +98,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             _validate_image(content, upload.filename or "image")
             uploads.append((upload.filename or "image", content))
 
-        options = ProcessOptions(background, upscale, scale, grunge, seed, texture)
+        options = ProcessOptions(
+            background=background,
+            upscale=upscale,
+            scale=scale,
+            grunge=grunge,
+            seed=seed,
+            texture=texture,
+            halftone=halftone,
+        )
         return store.create(uploads, options).public()
 
     @api.get("/api/jobs/{job_id}")
