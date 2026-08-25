@@ -153,40 +153,18 @@ async function poll(jobId) {
 }
 
 function renderRun(job) {
-  const run = document.createElement("article");
-  run.className = "result-run";
-  const heading = document.createElement("div");
-  heading.className = "run-heading";
-  const titleBox = document.createElement("div");
-  const title = document.createElement("h3");
-  title.textContent = `Run ${new Date(job.created_at * 1000).toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })}`;
-  const subtitle = document.createElement("span");
-  subtitle.textContent = `${job.total} ${job.total === 1 ? "image" : "images"}`;
-  titleBox.append(title, subtitle);
-  const download = document.createElement("a");
-  download.className = "button secondary compact";
-  download.href = job.archive;
-  download.textContent = "Download ZIP";
-  heading.append(titleBox, download);
-
-  const grid = document.createElement("div");
-  grid.className = "preview-grid result-grid";
+  const runResults = document.createDocumentFragment();
   for (const file of job.files) {
     const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
     const grunge = `Grunge ${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`;
-    grid.append(
+    runResults.append(
       card(file.download, file.name, {
         downloadable: true,
         meta: `${size} · ${grunge}`,
       }),
     );
   }
-  run.append(heading, grid);
-  resultHistory.prepend(run);
+  resultHistory.prepend(runResults);
   results.hidden = false;
 }
 

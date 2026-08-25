@@ -30,9 +30,9 @@ The local MVP currently supports:
 - a monochrome background-removal baseline
 - 2× and 4× Lanczos previews
 - reproducible, progressively scaled grunge
-- retained result runs with settings, dimensions, and file sizes
+- a compact, newest-first result gallery with dimensions, file sizes, and grunge values
 - full-size image previews
-- individual PNG and batch ZIP downloads
+- individual PNG downloads from every result card
 - a single-worker job queue suitable for the target server
 
 Lucida and the selected AI upscaler are exposed as optional worker adapters. They remain disabled in the UI until their commands and model weights are installed.

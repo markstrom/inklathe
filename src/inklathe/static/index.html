@@ -22,50 +22,49 @@
         </label>
         <div id="input-preview" class="preview-grid"></div>
 
-        <section class="controls">
-          <label>Upscaling
-            <select name="upscale" id="upscale">
-              <option value="lanczos">Lanczos preview</option>
-              <option value="ai" id="ai-option">AI model</option>
-              <option value="none">None</option>
-            </select>
-          </label>
-          <label>Scale
-            <select name="scale">
-              <option value="2">2×</option>
-              <option value="4" selected>4×</option>
-            </select>
-          </label>
-          <label>Background
-            <select name="background" id="background">
-              <option value="threshold">Monochrome cutout</option>
-              <option value="lucida" id="lucida-option">Lucida AI</option>
-              <option value="none">Keep original</option>
-            </select>
-          </label>
-          <label class="range-control">
-            <span class="range-title">Grunge <output id="grunge-value">0 · none</output></span>
-            <input name="grunge" id="grunge" type="range" min="0" max="100" value="0">
-            <span class="range-hints"><span>0 none</span><span>25 light</span><span>60 pronounced</span><span>100 heavy</span></span>
-          </label>
-          <label>Random seed
-            <input name="seed" type="number" value="1" min="0" max="2147483647">
-          </label>
-        </section>
+        <div class="processing-bar">
+          <section class="controls">
+            <label>Upscaling
+              <select name="upscale" id="upscale">
+                <option value="lanczos">Lanczos preview</option>
+                <option value="ai" id="ai-option">AI model</option>
+                <option value="none">None</option>
+              </select>
+            </label>
+            <label>Scale
+              <select name="scale">
+                <option value="2">2×</option>
+                <option value="4" selected>4×</option>
+              </select>
+            </label>
+            <label>Background
+              <select name="background" id="background">
+                <option value="threshold">Monochrome cutout</option>
+                <option value="lucida" id="lucida-option">Lucida AI</option>
+                <option value="none">Keep original</option>
+              </select>
+            </label>
+            <label class="range-control">
+              <span class="range-title">Grunge <output id="grunge-value">0 · none</output></span>
+              <input name="grunge" id="grunge" type="range" min="0" max="100" value="0">
+              <span class="range-hints"><span>0 none</span><span>25 light</span><span>60 pronounced</span><span>100 heavy</span></span>
+            </label>
+            <label>Random seed
+              <input name="seed" type="number" value="1" min="0" max="2147483647">
+            </label>
+          </section>
 
-        <button type="submit">Process images</button>
+          <button type="submit">Process</button>
+        </div>
       </form>
 
       <section id="status" class="status" hidden></section>
       <section id="results" class="results" hidden>
         <div class="result-heading">
-          <div>
-            <p class="eyebrow">RUN HISTORY</p>
-            <h2>Results</h2>
-          </div>
-          <span class="history-note">Newest run first</span>
+          <h2>Results</h2>
+          <span class="history-note">Newest first</span>
         </div>
-        <div id="result-history"></div>
+        <div id="result-history" class="result-gallery"></div>
       </section>
     </main>
 
