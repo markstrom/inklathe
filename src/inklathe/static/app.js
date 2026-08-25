@@ -101,6 +101,10 @@ function textureDescription(texture) {
   return textureLabels[texture] || texture;
 }
 
+function textureMenuLabel(label) {
+  return label.replace(/\s*·\s*G\d+\s*$/, "");
+}
+
 function estimatedWearCoverage(value, texture) {
   const maximum = textureMaximums[texture] || 15;
   return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
@@ -525,7 +529,7 @@ async function loadCapabilities() {
       }
       const option = document.createElement("option");
       option.value = texture.id;
-      option.textContent = texture.label;
+      option.textContent = textureMenuLabel(texture.label);
       groups.get(texture.category).append(option);
     }
     textureSelect.replaceChildren(...groups.values());
