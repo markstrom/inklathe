@@ -87,6 +87,9 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
     texture_dir.mkdir()
     Image.new("L", (80, 80), 255).save(texture_dir / "Grunge_306XL.jpg")
     Image.new("L", (80, 80), 127).save(
+        texture_dir / "Texturelabs_Grunge_289XL.jpg"
+    )
+    Image.new("L", (80, 80), 127).save(
         texture_dir / "Texturelabs_Grunge_356XL.jpg"
     )
     settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
@@ -100,7 +103,7 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
                 "upscale": "none",
                 "grunge": 40,
                 "texture": "scan-g306",
-                "halftone": "halftone-g356",
+                "halftone": "halftone-g289",
             },
         )
 
@@ -115,8 +118,8 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
     ]
     assert health["capabilities"]["halftones"] == [
         {
-            "id": "halftone-g356",
-            "label": "Newspaper photo",
+            "id": "halftone-g289",
+            "label": "Black halftone floodcoat",
             "category": "Halftone",
             "kind": "scanned",
         }
@@ -150,7 +153,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
     texture_dir.mkdir()
     Image.new("L", (80, 80), 255).save(texture_dir / "Grunge_306XL.jpg")
     Image.new("L", (80, 80), 127).save(
-        texture_dir / "Texturelabs_Grunge_356XL.jpg"
+        texture_dir / "Texturelabs_Grunge_289XL.jpg"
     )
     settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
     with TestClient(create_app(settings)) as client:
@@ -159,7 +162,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             "upscale": "lanczos",
             "scale": 2,
             "texture": "scan-g306",
-            "halftone": "halftone-g356",
+            "halftone": "halftone-g289",
         }
         first_response = client.post(
             "/api/jobs",

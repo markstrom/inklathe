@@ -112,30 +112,6 @@ BITMAP_TEXTURE_PROFILES = {
 # repository. ``invert`` describes scans whose printable marks are dark on a
 # light background; the generated alpha mask always uses white for printed ink.
 HALFTONE_PROFILES = {
-    "halftone-g356": {
-        "filename": "Texturelabs_Grunge_356XL.jpg",
-        "label": "Newspaper photo",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g354": {
-        "filename": "Texturelabs_Grunge_354XL.jpg",
-        "label": "Newspaper pattern",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g351": {
-        "filename": "Texturelabs_Grunge_351XL.jpg",
-        "label": "Tiny halftone overlay",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g340": {
-        "filename": "Texturelabs_Grunge_340XL.jpg",
-        "label": "Fine vintage halftone",
-        "category": "Halftone",
-        "invert": True,
-    },
     "halftone-g289": {
         "filename": "Texturelabs_Grunge_289XL.jpg",
         "label": "Black halftone floodcoat",
@@ -148,21 +124,9 @@ HALFTONE_PROFILES = {
         "category": "Halftone",
         "invert": True,
     },
-    "halftone-g246": {
-        "filename": "Texturelabs_Grunge_246XL.jpg",
-        "label": "Light dots pattern",
-        "category": "Halftone",
-        "invert": True,
-    },
     "halftone-g242": {
         "filename": "Texturelabs_Grunge_242XL.jpg",
         "label": "Printed halftone gradient",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g234": {
-        "filename": "Texturelabs_Grunge_234XL.jpg",
-        "label": "Small dots halftone",
         "category": "Halftone",
         "invert": True,
     },

@@ -190,14 +190,10 @@ Dark marks in these scans become transparent ink knockouts. InkLathe uses a sing
 large, non-tiled crop. Pattern variation changes its crop and orientation while keeping
 the result reproducible.
 
-The currently registered Print treatment filenames are:
-
-- `Texturelabs_Grunge_234XL.jpg`, `Texturelabs_Grunge_242XL.jpg`, and
-  `Texturelabs_Grunge_246XL.jpg`
-- `Texturelabs_Grunge_283XL.jpg`, `Texturelabs_Grunge_289XL.jpg`, and
-  `Texturelabs_Grunge_290XL.jpg`
-- `Texturelabs_Grunge_340XL.jpg`, `Texturelabs_Grunge_351XL.jpg`,
-  `Texturelabs_Grunge_354XL.jpg`, and `Texturelabs_Grunge_356XL.jpg`
+The currently registered Print treatment filenames are
+`Texturelabs_Grunge_242XL.jpg`, `Texturelabs_Grunge_283XL.jpg`,
+`Texturelabs_Grunge_289XL.jpg`, and `Texturelabs_Grunge_290XL.jpg`. The smaller set
+intentionally keeps only the most distinct, useful treatments in the menu.
 
 These masks screen isolated ink into binary printable dots or engraved lines before
 the selected wear is applied. File discovery, dropdown labels, categories, polarity,
