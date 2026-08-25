@@ -230,6 +230,7 @@ let runSequence = 0;
 const activeRuns = new Map();
 let resultItems = [];
 let currentResultId = null;
+let previewLoadVersion = 0;
 let maxImagePixels = null;
 const textureLabels = {};
 const halftoneLabels = { none: "Solid ink" };
@@ -651,7 +652,7 @@ function clearUnfinishedPendingItems(run) {
 
 function openResultPreview(id) {
   currentResultId = id;
-  setPreviewCompare(false);
+  setPreviewCompare(true);
   updateResultPreview();
   if (!previewDialog.open) previewDialog.showModal();
 }
@@ -665,9 +666,10 @@ function updateResultPreview() {
   const index = previewItems.findIndex((item) => item.id === currentResultId);
   if (index < 0) return;
   const item = previewItems[index];
-  previewLarge.src = item.url;
+  const loadVersion = ++previewLoadVersion;
+  loadPreviewImage(previewLarge, item.url, "loading-result", loadVersion);
   previewLarge.alt = item.name;
-  previewOriginal.src = item.sourceUrl;
+  loadPreviewImage(previewOriginal, item.sourceUrl, "loading-original", loadVersion);
   previewTitle.textContent = item.name;
   previewMeta.textContent = item.meta;
   previewDownload.href = item.url;
@@ -675,6 +677,22 @@ function updateResultPreview() {
   previewPrevious.disabled = index === 0;
   previewNext.disabled = index === previewItems.length - 1;
   setPreviewZoom(false);
+}
+
+function loadPreviewImage(image, url, loadingClass, loadVersion) {
+  previewZoom.classList.add(loadingClass);
+  image.removeAttribute("src");
+  const finish = () => {
+    image.removeEventListener("load", finish);
+    image.removeEventListener("error", finish);
+    if (loadVersion === previewLoadVersion && image.getAttribute("src") === url) {
+      previewZoom.classList.remove(loadingClass);
+    }
+  };
+  image.addEventListener("load", finish);
+  image.addEventListener("error", finish);
+  image.src = url;
+  if (image.complete) queueMicrotask(finish);
 }
 
 function setPreviewCompare(comparing) {
@@ -869,6 +887,8 @@ previewDialog.addEventListener("click", (event) => {
   if (event.target === previewDialog) previewDialog.close();
 });
 previewDialog.addEventListener("close", () => {
+  previewLoadVersion += 1;
+  previewZoom.classList.remove("loading-result", "loading-original");
   setPreviewZoom(false);
   setPreviewCompare(false);
 });
