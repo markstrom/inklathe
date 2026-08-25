@@ -454,6 +454,7 @@ function renderRecentSources() {
   }
   inputPreview.append(recentPlaceholder);
   updateDropPromptVisibility();
+  syncSubmitButton();
 }
 
 new ResizeObserver(updateDropPromptVisibility).observe(inputPreview);
@@ -1002,9 +1003,13 @@ async function loadCapabilities({ refresh = false } = {}) {
   return health;
 }
 
+function syncSubmitButton() {
+  submitButton.disabled = isSubmitting || selectedSourceIds.size === 0;
+}
+
 function setSubmitting(submitting) {
   isSubmitting = submitting;
-  submitButton.disabled = submitting;
+  syncSubmitButton();
   form.classList.toggle("is-submitting", submitting);
 }
 

@@ -34,6 +34,7 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert 'id="favorite-dialog"' in response.text
     assert 'data-tooltip="Compare with original (C)"' in response.text
     assert "Drop images" in response.text
+    assert 'type="submit" disabled' in response.text
     assert ">Process</button>" in response.text
     assert "Alt-click randomizes the treatment. New runs join the FIFO queue." in response.text
     assert "Generated fallbacks" not in response.text
@@ -63,6 +64,8 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert 'const favoriteStorageKey = "inklathe-favorite-presets"' in script.text
     assert "function randomizePrintTreatment()" in script.text
     assert "function syncUpscaleControls()" in script.text
+    assert "function syncSubmitButton()" in script.text
+    assert "isSubmitting || selectedSourceIds.size === 0" in script.text
     assert "scaleSelect.disabled = disabled" in script.text
     assert '"upscale",' in script.text
     assert '"seed",' in script.text
