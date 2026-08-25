@@ -45,7 +45,7 @@ def test_job_round_trip(tmp_path) -> None:
                 "background": "threshold",
                 "upscale": "lanczos",
                 "scale": 2,
-                "texture": "scan-vintage-screen",
+                "texture": "scan-g306",
             },
         )
         assert response.status_code == 202
@@ -56,7 +56,7 @@ def test_job_round_trip(tmp_path) -> None:
                 break
             sleep(0.02)
         assert job["state"] == "complete"
-        assert job["settings"]["texture"] == "scan-vintage-screen"
+        assert job["settings"]["texture"] == "scan-g306"
         result_name = job["files"][0]["name"]
         assert result_name.startswith("logo-")
         assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
@@ -80,11 +80,17 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
         response = client.post(
             "/api/jobs",
             files=[("files", ("logo.png", image_bytes(), "image/png"))],
-            data={"upscale": "none", "grunge": 40, "texture": "scan-vintage-screen"},
+            data={"upscale": "none", "grunge": 40, "texture": "scan-g306"},
         )
 
     assert health["capabilities"]["bitmap_textures"] == [
-        {"id": "scan-vintage-screen", "label": "Vintage screen print", "kind": "scanned"}
+        {
+            "id": "scan-g306",
+            "label": "Heavy screen ink · G306",
+            "category": "Screen print",
+            "maximum_percent": 12.0,
+            "kind": "scanned",
+        }
     ]
     assert response.status_code == 202
 
@@ -120,7 +126,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             "background": "threshold",
             "upscale": "lanczos",
             "scale": 2,
-            "texture": "scan-vintage-screen",
+            "texture": "scan-g306",
         }
         first_response = client.post(
             "/api/jobs",

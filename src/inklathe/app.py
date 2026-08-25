@@ -40,7 +40,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "lucida": bool(settings.lucida_command),
                 "ai_upscaler": bool(settings.ai_upscaler_command),
                 "bitmap_textures": [
-                    {"id": key, "label": str(profile["label"]), "kind": "scanned"}
+                    {
+                        "id": key,
+                        "label": str(profile["label"]),
+                        "category": str(profile["category"]),
+                        "maximum_percent": float(profile["maximum"]) * 100,
+                        "kind": "scanned",
+                    }
                     for key, profile in bitmap_textures.items()
                 ],
             },
@@ -54,7 +60,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scale: Annotated[int, Form()] = 4,
         grunge: Annotated[int, Form()] = 0,
         seed: Annotated[int, Form()] = 1,
-        texture: Annotated[str, Form()] = "scan-vintage-screen",
+        texture: Annotated[str, Form()] = "scan-g306",
     ) -> dict:
         if not 1 <= len(files) <= 20:
             raise HTTPException(400, "Upload between 1 and 20 images")

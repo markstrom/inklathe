@@ -77,6 +77,8 @@ let activeSourceId = null;
 let activePendingItems = [];
 let resultItems = [];
 let currentResultId = null;
+const textureLabels = {};
+const textureMaximums = {};
 
 function formatBytes(bytes) {
   if (bytes === null || bytes === undefined) return "";
@@ -96,23 +98,11 @@ function wearDescription(value) {
 }
 
 function textureDescription(texture) {
-  return {
-    "scan-vintage-screen": "Vintage screen print",
-    "scan-plastisol-cracks": "Plastisol cracks",
-    "scan-fine-speckles": "Fine ink speckles",
-    "scan-heavy-distress": "Heavy print distress",
-    "scan-washed-ink": "Washed ink grain",
-  }[texture] || texture;
+  return textureLabels[texture] || texture;
 }
 
 function estimatedWearCoverage(value, texture) {
-  const maximum = {
-    "scan-vintage-screen": 12,
-    "scan-plastisol-cracks": 9,
-    "scan-fine-speckles": 10,
-    "scan-heavy-distress": 15,
-    "scan-washed-ink": 11,
-  }[texture] || 15;
+  const maximum = textureMaximums[texture] || 15;
   return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
 }
 
@@ -524,15 +514,21 @@ async function loadCapabilities() {
   ai.textContent += ai.disabled ? " — not installed" : " — ready";
   const scanned = health.capabilities.bitmap_textures || [];
   if (scanned.length > 0) {
-    const group = document.createElement("optgroup");
-    group.label = "Scanned print masks";
+    const groups = new Map();
     for (const texture of scanned) {
+      textureLabels[texture.id] = texture.label;
+      textureMaximums[texture.id] = texture.maximum_percent;
+      if (!groups.has(texture.category)) {
+        const group = document.createElement("optgroup");
+        group.label = texture.category;
+        groups.set(texture.category, group);
+      }
       const option = document.createElement("option");
       option.value = texture.id;
-      option.textContent = `${texture.label} — local mask`;
-      group.append(option);
+      option.textContent = texture.label;
+      groups.get(texture.category).append(option);
     }
-    textureSelect.replaceChildren(group);
+    textureSelect.replaceChildren(...groups.values());
     textureSelect.value = scanned[0].id;
     wearSelect.value = "50";
   } else {

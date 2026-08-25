@@ -9,30 +9,101 @@ from PIL import Image, ImageChops, ImageFilter, ImageOps
 # These files are intentionally not distributed with InkLathe. They may be placed in
 # INKLATHE_TEXTURE_DIR by a server owner who has obtained the corresponding licenses.
 BITMAP_TEXTURE_PROFILES = {
-    "scan-vintage-screen": {
+    "scan-g306": {
         "filename": "Grunge_306XL.jpg",
-        "label": "Vintage screen print",
+        "label": "Heavy screen ink · G306",
+        "category": "Screen print",
         "maximum": 0.12,
     },
-    "scan-plastisol-cracks": {
-        "filename": "Grunge_298XL.jpg",
-        "label": "Plastisol cracks",
-        "maximum": 0.09,
-    },
-    "scan-fine-speckles": {
-        "filename": "Grunge_311XL.jpg",
-        "label": "Fine ink speckles",
+    "scan-g296": {
+        "filename": "Grunge_296XL.jpg",
+        "label": "Vintage screen distress · G296",
+        "category": "Screen print",
         "maximum": 0.10,
     },
-    "scan-heavy-distress": {
+    "scan-g307": {
+        "filename": "Grunge_307XL.jpg",
+        "label": "Large print crackle · G307",
+        "category": "Screen print",
+        "maximum": 0.12,
+    },
+    "scan-g308": {
+        "filename": "Grunge_308XL.jpg",
+        "label": "Vintage ink wear · G308",
+        "category": "Screen print",
+        "maximum": 0.12,
+    },
+    "scan-g297": {
+        "filename": "Grunge_297XL.jpg",
+        "label": "Distressed plastisol · G297",
+        "category": "Plastisol",
+        "maximum": 0.10,
+    },
+    "scan-g298": {
+        "filename": "Grunge_298XL.jpg",
+        "label": "Vintage washed T-shirt · G298",
+        "category": "Plastisol",
+        "maximum": 0.09,
+    },
+    "scan-g299": {
+        "filename": "Grunge_299XL.jpg",
+        "label": "Cracked screen-print ink · G299",
+        "category": "Plastisol",
+        "maximum": 0.09,
+    },
+    "scan-g309": {
+        "filename": "Grunge_309XL.jpg",
+        "label": "Fine plastisol fissures · G309",
+        "category": "Plastisol",
+        "maximum": 0.09,
+    },
+    "scan-g310": {
+        "filename": "Grunge_310XL.jpg",
+        "label": "Heavy plastisol cracks · G310",
+        "category": "Plastisol",
+        "maximum": 0.11,
+    },
+    "scan-g313": {
+        "filename": "Grunge_313XL.jpg",
+        "label": "Large print cracks · G313",
+        "category": "Plastisol",
+        "maximum": 0.12,
+    },
+    "scan-g311": {
+        "filename": "Grunge_311XL.jpg",
+        "label": "Medium speckles · G311",
+        "category": "Fine wear",
+        "maximum": 0.10,
+    },
+    "scan-g272": {
+        "filename": "Grunge_272XL.jpg",
+        "label": "Weathered ink grain · G272",
+        "category": "Fine wear",
+        "maximum": 0.11,
+    },
+    "scan-g327": {
         "filename": "Grunge_327XL.jpg",
-        "label": "Heavy print distress",
+        "label": "Heavy grunge mask · G327",
+        "category": "Heavy wear",
         "maximum": 0.15,
     },
-    "scan-washed-ink": {
-        "filename": "Grunge_272XL.jpg",
-        "label": "Washed ink grain",
-        "maximum": 0.11,
+    "scan-g141": {
+        "filename": "Grunge_141XL.jpg",
+        "label": "Detailed cracked paint · G141",
+        "category": "Paint crackle",
+        "maximum": 0.10,
+    },
+    "scan-g197": {
+        "filename": "Grunge_197XL.jpg",
+        "label": "Cracked paint on canvas · G197",
+        "category": "Paint crackle",
+        "maximum": 0.10,
+    },
+    "scan-g198": {
+        "filename": "Grunge_198XL.jpg",
+        "label": "Dense cracked paint · G198",
+        "category": "Paint crackle",
+        "maximum": 0.12,
     },
 }
 
@@ -54,7 +125,7 @@ class ProcessOptions:
     scale: int = 4
     grunge: int = 0
     seed: int = 1
-    texture: str = "scan-vintage-screen"
+    texture: str = "scan-g306"
 
 
 def otsu_threshold(image: Image.Image) -> int:
@@ -114,7 +185,7 @@ def upscale_lanczos(image: Image.Image, scale: int) -> Image.Image:
 def apply_texture(
     image: Image.Image,
     amount: int,
-    texture: str = "scan-vintage-screen",
+    texture: str = "scan-g306",
     seed: int = 1,
     *,
     texture_path: Path | None = None,

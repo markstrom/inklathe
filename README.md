@@ -64,8 +64,11 @@ The current and queued jobs are always protected. Set it to `0` to disable clean
 
 InkLathe can use high-resolution grayscale texture scans without redistributing them.
 Place licensed copies in `$INKLATHE_DATA_DIR/textures` (the default) or set
-`INKLATHE_TEXTURE_DIR` to another private directory. The currently recognized filenames are `Grunge_306XL.jpg`,
-`Grunge_298XL.jpg`, `Grunge_311XL.jpg`, `Grunge_327XL.jpg`, and `Grunge_272XL.jpg`.
+`INKLATHE_TEXTURE_DIR` to another private directory. InkLathe recognizes the locally
+installed `Grunge_141XL.jpg`, `Grunge_197XL.jpg`, `Grunge_198XL.jpg`,
+`Grunge_272XL.jpg`, `Grunge_296XL.jpg` through `Grunge_299XL.jpg`,
+`Grunge_306XL.jpg` through `Grunge_311XL.jpg`, `Grunge_313XL.jpg`, and
+`Grunge_327XL.jpg` files.
 Detected masks appear first in the Wear style menu. The app converts dark scanned
 marks into binary transparent ink knockouts, uses one large non-tiled crop, and keeps
 the result reproducible through Wear seed.
