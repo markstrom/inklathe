@@ -3,6 +3,10 @@ const fileInput = document.querySelector("#files");
 const dropZone = document.querySelector("#drop-zone");
 const inputPreview = document.querySelector("#input-preview");
 const recentPlaceholder = document.querySelector("#recent-placeholder");
+const recentActions = document.querySelector("#recent-actions");
+const selectionCount = document.querySelector("#selection-count");
+const selectAllSources = document.querySelector("#select-all-sources");
+const clearSourceSelection = document.querySelector("#clear-source-selection");
 const statusBox = document.querySelector("#status");
 const results = document.querySelector("#results");
 const resultHistory = document.querySelector("#result-history");
@@ -78,6 +82,10 @@ function addRecentSources(files) {
 function renderRecentSources() {
   inputPreview.replaceChildren();
   recentPlaceholder.hidden = recentSources.length > 0;
+  recentActions.hidden = recentSources.length === 0;
+  selectionCount.textContent = `${selectedSourceIds.size} of ${recentSources.length} selected`;
+  selectAllSources.disabled = submitButton.disabled || selectedSourceIds.size === recentSources.length;
+  clearSourceSelection.disabled = submitButton.disabled || selectedSourceIds.size === 0;
   for (const source of recentSources) {
     const figure = document.createElement("figure");
     figure.className = "source-preview";
@@ -87,12 +95,20 @@ function renderRecentSources() {
     const select = document.createElement("button");
     select.type = "button";
     select.className = "source-select";
+    select.disabled = submitButton.disabled;
     select.setAttribute("aria-pressed", String(selectedSourceIds.has(source.id)));
     select.setAttribute("aria-label", `Select ${source.file.name} for processing`);
     const image = document.createElement("img");
     image.src = source.url;
     image.alt = source.file.name;
     select.append(image);
+    if (selectedSourceIds.has(source.id)) {
+      const selected = document.createElement("span");
+      selected.className = "source-selected";
+      selected.textContent = "✓";
+      selected.setAttribute("aria-hidden", "true");
+      select.append(selected);
+    }
     select.addEventListener("click", () => {
       if (submitButton.disabled) return;
       if (selectedSourceIds.has(source.id)) selectedSourceIds.delete(source.id);
@@ -107,9 +123,28 @@ function renderRecentSources() {
       select.append(badge);
     }
 
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "source-remove";
+    remove.disabled = submitButton.disabled;
+    remove.title = `Remove ${source.file.name} from recent images`;
+    remove.setAttribute("aria-label", `Remove ${source.file.name} from recent images`);
+    remove.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6" />
+      </svg>
+    `;
+    remove.addEventListener("click", () => {
+      if (submitButton.disabled) return;
+      URL.revokeObjectURL(source.url);
+      recentSources = recentSources.filter((item) => item.id !== source.id);
+      selectedSourceIds.delete(source.id);
+      renderRecentSources();
+    });
+
     const caption = document.createElement("figcaption");
     caption.textContent = source.file.name;
-    figure.append(select, caption);
+    figure.append(select, remove, caption);
     inputPreview.append(figure);
   }
 }
@@ -339,6 +374,14 @@ async function deleteResult(id, skipConfirmation = false) {
 }
 
 fileInput.addEventListener("change", () => addRecentSources([...fileInput.files]));
+selectAllSources.addEventListener("click", () => {
+  selectedSourceIds = new Set(recentSources.map((source) => source.id));
+  renderRecentSources();
+});
+clearSourceSelection.addEventListener("click", () => {
+  selectedSourceIds.clear();
+  renderRecentSources();
+});
 const wearSlider = document.querySelector("#wear");
 const textureSelect = document.querySelector("#texture");
 wearSlider.addEventListener("input", (event) => {

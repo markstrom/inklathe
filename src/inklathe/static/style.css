@@ -38,7 +38,12 @@ form, .status, .results { border: 1px solid var(--line); background: rgba(25,25,
 .drop input { position: absolute; opacity: 0; pointer-events: none; }
 .drop strong { font: 800 1rem Arial, sans-serif; text-transform: uppercase; }
 .drop span { color: #918d84; }
-.recent-sources { display: flex; min-width: 0; min-height: 92px; align-items: flex-start; padding: 8px; overflow: hidden; border: 1px solid #34332f; background: #111; }
+.recent-sources { display: grid; min-width: 0; min-height: 92px; align-content: start; padding: 8px; overflow: hidden; border: 1px solid #34332f; background: #111; }
+.recent-actions { display: flex; align-items: center; justify-content: flex-end; gap: 5px; margin-bottom: 7px; }
+.recent-actions[hidden] { display: none; }
+.recent-actions span { margin-right: auto; color: #918d84; font-size: .6rem; }
+.recent-actions button { min-height: 26px; padding: 5px 8px; border: 1px solid var(--line); background: transparent; color: var(--paper); font-size: .58rem; }
+.recent-actions button:hover:not(:disabled) { border-color: var(--acid); color: var(--acid); }
 #recent-placeholder { padding: 0 12px; color: #77736a; font-size: .7rem; }
 #input-preview { display: flex; min-width: 0; width: 100%; gap: 8px; overflow-x: auto; }
 .source-preview { position: relative; flex: 0 0 200px; min-width: 0; margin: 0; border: 1px solid var(--line); background: #222; }
@@ -46,6 +51,10 @@ form, .status, .results { border: 1px solid var(--line); background: rgba(25,25,
 .source-preview.processing { box-shadow: 0 0 0 2px var(--acid); }
 .source-select { position: relative; display: block; width: 100%; padding: 0; background: transparent; color: inherit; }
 .source-select img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0/20px 20px; }
+.source-selected { position: absolute; top: 6px; left: 6px; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid #111; background: var(--acid); color: #111; font: 900 .8rem Arial, sans-serif; }
+.source-remove { position: absolute; z-index: 2; top: 6px; right: 6px; display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 1px solid #5b5952; background: rgba(17,17,17,.9); color: var(--paper); }
+.source-remove:hover { border-color: var(--rust); color: var(--rust); }
+.source-remove svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-linecap: square; stroke-linejoin: miter; stroke-width: 2; }
 .source-preview figcaption { overflow: hidden; padding: 4px 5px; color: #aaa69c; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
 .processing-badge { position: absolute; inset: auto 3px 3px; padding: 2px 3px; background: var(--acid); color: #111; font: 700 .48rem Arial, sans-serif; letter-spacing: .04em; text-transform: uppercase; }
 .processing-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 12px; }
