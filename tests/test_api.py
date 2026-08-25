@@ -65,6 +65,26 @@ def test_job_round_trip(tmp_path) -> None:
         assert client.get(job["archive"]).headers["content-type"] == "application/zip"
 
 
+def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
+    texture_dir = tmp_path / "textures"
+    texture_dir.mkdir()
+    Image.new("L", (80, 80), 255).save(texture_dir / "Grunge_306XL.jpg")
+    settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
+
+    with TestClient(create_app(settings)) as client:
+        health = client.get("/api/health").json()
+        response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={"upscale": "none", "grunge": 40, "texture": "scan-vintage-screen"},
+        )
+
+    assert health["capabilities"]["bitmap_textures"] == [
+        {"id": "scan-vintage-screen", "label": "Vintage screen print", "kind": "scanned"}
+    ]
+    assert response.status_code == 202
+
+
 def test_result_can_be_deleted(tmp_path) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         response = client.post(

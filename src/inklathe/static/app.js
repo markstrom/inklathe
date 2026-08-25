@@ -99,6 +99,11 @@ function textureDescription(texture) {
     "dry-screen": "Dry screen",
     "scuffed-print": "Scuffed print",
     "vintage-mix": "Vintage mix",
+    "scan-vintage-screen": "Vintage screen print",
+    "scan-plastisol-cracks": "Plastisol cracks",
+    "scan-fine-speckles": "Fine ink speckles",
+    "scan-heavy-distress": "Heavy print distress",
+    "scan-washed-ink": "Washed ink grain",
   }[texture] || texture;
 }
 
@@ -109,6 +114,11 @@ function estimatedWearCoverage(value, texture) {
     "dry-screen": 15,
     "scuffed-print": 7,
     "vintage-mix": 15,
+    "scan-vintage-screen": 12,
+    "scan-plastisol-cracks": 9,
+    "scan-fine-speckles": 10,
+    "scan-heavy-distress": 15,
+    "scan-washed-ink": 11,
   }[texture] || 15;
   return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
 }
@@ -533,6 +543,21 @@ async function loadCapabilities() {
   ai.disabled = !health.capabilities.ai_upscaler;
   lucida.textContent += lucida.disabled ? " — not installed" : " — ready";
   ai.textContent += ai.disabled ? " — not installed" : " — ready";
+  const scanned = health.capabilities.bitmap_textures || [];
+  if (scanned.length > 0) {
+    const group = document.createElement("optgroup");
+    group.label = "Scanned print masks";
+    for (const texture of scanned) {
+      const option = document.createElement("option");
+      option.value = texture.id;
+      option.textContent = `${texture.label} — local mask`;
+      group.append(option);
+    }
+    textureSelect.prepend(group);
+    textureSelect.value = scanned[0].id;
+    wearSlider.value = "40";
+    wearSlider.dispatchEvent(new Event("input"));
+  }
 }
 
 function setBusy(busy) {

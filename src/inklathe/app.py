@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
 from .jobs import JobStore
-from .processing import TEXTURE_PROFILES, ProcessOptions
+from .processing import TEXTURE_PROFILES, ProcessOptions, available_bitmap_textures
 
 PACKAGE_DIR = Path(__file__).parent
 
@@ -20,6 +20,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or Settings.from_env()
     Image.MAX_IMAGE_PIXELS = settings.max_pixels
     store = JobStore(settings)
+    bitmap_textures = available_bitmap_textures(settings.texture_dir)
     api = FastAPI(title="InkLathe", version="0.1.0")
     api.state.settings = settings
     api.state.jobs = store
@@ -38,6 +39,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "capabilities": {
                 "lucida": bool(settings.lucida_command),
                 "ai_upscaler": bool(settings.ai_upscaler_command),
+                "bitmap_textures": [
+                    {"id": key, "label": str(profile["label"]), "kind": "scanned"}
+                    for key, profile in bitmap_textures.items()
+                ],
             },
         }
 
@@ -59,7 +64,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(400, "Unsupported upscale mode")
         if not 0 <= grunge <= 100:
             raise HTTPException(400, "Wear must be between 0 and 100")
-        if texture not in TEXTURE_PROFILES:
+        if texture not in TEXTURE_PROFILES and texture not in bitmap_textures:
             raise HTTPException(400, "Unsupported texture")
         if background == "lucida" and not settings.lucida_command:
             raise HTTPException(409, "Lucida is not installed on this worker")

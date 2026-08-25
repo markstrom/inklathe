@@ -15,7 +15,13 @@ from PIL import Image
 
 from .adapters import run_ai_upscaler, run_lucida
 from .config import Settings
-from .processing import ProcessOptions, apply_texture, process_builtin, upscale_lanczos
+from .processing import (
+    ProcessOptions,
+    apply_texture,
+    available_bitmap_textures,
+    process_builtin,
+    upscale_lanczos,
+)
 
 BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 TIMESTAMP_EPOCH = 1767225600  # 2026-01-01 00:00:00 UTC
@@ -101,6 +107,7 @@ class JobStore:
         self.jobs: dict[str, Job] = {}
         self.lock = Lock()
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="inklathe-worker")
+        self.bitmap_textures = available_bitmap_textures(settings.texture_dir)
 
     def create(self, uploads: list[tuple[str, bytes]], options: ProcessOptions) -> Job:
         created_at = time()
@@ -267,7 +274,15 @@ class JobStore:
             )
 
         with Image.open(prepared) as opened:
-            final = apply_texture(opened, options.grunge, options.texture, seed)
+            bitmap = self.bitmap_textures.get(options.texture)
+            final = apply_texture(
+                opened,
+                options.grunge,
+                options.texture,
+                seed,
+                texture_path=Path(str(bitmap["path"])) if bitmap else None,
+                maximum=float(bitmap["maximum"]) if bitmap else None,
+            )
             final.load()
         preview = final.copy()
         preview.thumbnail((PREVIEW_MAX_SIZE, PREVIEW_MAX_SIZE), Image.Resampling.LANCZOS)

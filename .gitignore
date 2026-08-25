@@ -19,6 +19,7 @@ dist/
 
 # Runtime data
 data/
+local-textures/
 uploads/
 outputs/
 jobs/

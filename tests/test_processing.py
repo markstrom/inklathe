@@ -56,6 +56,30 @@ def test_texture_profiles_are_distinct() -> None:
     assert len(results) == 5
 
 
+def test_bitmap_texture_is_reproducible_and_calibrated(tmp_path: Path) -> None:
+    texture = tmp_path / "texture.jpg"
+    scanned = Image.new("L", (300, 220), 245)
+    draw = ImageDraw.Draw(scanned)
+    for x in range(10, 290, 17):
+        draw.line((x, 0, x - 35, 219), fill=20, width=2)
+    scanned.save(texture)
+    source = Image.new("RGBA", (256, 256), (0, 0, 0, 255))
+
+    first = apply_texture(
+        source, 60, "local-test", 42, texture_path=texture, maximum=0.12
+    )
+    repeated = apply_texture(
+        source, 60, "local-test", 42, texture_path=texture, maximum=0.12
+    )
+    changed_seed = apply_texture(
+        source, 60, "local-test", 43, texture_path=texture, maximum=0.12
+    )
+
+    assert first.tobytes() == repeated.tobytes()
+    assert first.tobytes() != changed_seed.tobytes()
+    assert set(first.getchannel("A").get_flattened_data()) <= {0, 255}
+
+
 def test_wear_is_calibrated_and_uses_binary_knockouts() -> None:
     source = Image.new("RGBA", (384, 384), (0, 0, 0, 255))
     pixels = source.width * source.height

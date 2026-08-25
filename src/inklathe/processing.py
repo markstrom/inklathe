@@ -15,6 +15,46 @@ TEXTURE_PROFILES = {
     "vintage-mix": 0.15,
 }
 
+# These files are intentionally not distributed with InkLathe. They may be placed in
+# INKLATHE_TEXTURE_DIR by a server owner who has obtained the corresponding licenses.
+BITMAP_TEXTURE_PROFILES = {
+    "scan-vintage-screen": {
+        "filename": "Grunge_306XL.jpg",
+        "label": "Vintage screen print",
+        "maximum": 0.12,
+    },
+    "scan-plastisol-cracks": {
+        "filename": "Grunge_298XL.jpg",
+        "label": "Plastisol cracks",
+        "maximum": 0.09,
+    },
+    "scan-fine-speckles": {
+        "filename": "Grunge_311XL.jpg",
+        "label": "Fine ink speckles",
+        "maximum": 0.10,
+    },
+    "scan-heavy-distress": {
+        "filename": "Grunge_327XL.jpg",
+        "label": "Heavy print distress",
+        "maximum": 0.15,
+    },
+    "scan-washed-ink": {
+        "filename": "Grunge_272XL.jpg",
+        "label": "Washed ink grain",
+        "maximum": 0.11,
+    },
+}
+
+
+def available_bitmap_textures(texture_dir: Path | None) -> dict[str, dict[str, object]]:
+    if texture_dir is None:
+        return {}
+    return {
+        key: {**profile, "path": texture_dir / str(profile["filename"])}
+        for key, profile in BITMAP_TEXTURE_PROFILES.items()
+        if (texture_dir / str(profile["filename"])).is_file()
+    }
+
 
 @dataclass(frozen=True)
 class ProcessOptions:
@@ -81,12 +121,18 @@ def upscale_lanczos(image: Image.Image, scale: int) -> Image.Image:
 
 
 def apply_texture(
-    image: Image.Image, amount: int, texture: str = "vintage-mix", seed: int = 1
+    image: Image.Image,
+    amount: int,
+    texture: str = "vintage-mix",
+    seed: int = 1,
+    *,
+    texture_path: Path | None = None,
+    maximum: float | None = None,
 ) -> Image.Image:
     """Apply deterministic, print-oriented wear as fully transparent knockouts."""
     if amount <= 0:
         return image.convert("RGBA")
-    if texture not in TEXTURE_PROFILES:
+    if texture_path is None and texture not in TEXTURE_PROFILES:
         raise ValueError(f"Unknown texture: {texture}")
 
     amount = min(100, amount)
@@ -96,16 +142,51 @@ def apply_texture(
     foreground = alpha.point(lambda value: 255 if value >= 128 else 0)
     work_size = _working_size(rgba.size)
     work_foreground = foreground.resize(work_size, Image.Resampling.NEAREST)
-    score = _texture_score(texture, work_size, rng)
+    score = (
+        _bitmap_texture_score(texture_path, work_size, rng)
+        if texture_path is not None
+        else _texture_score(texture, work_size, rng)
+    )
     score = _protect_thin_marks(score, work_foreground)
     tie_breaker = _random_field(work_size, rng, 700, 0)
     score = score.resize(rgba.size, Image.Resampling.BICUBIC)
     tie_breaker = tie_breaker.resize(rgba.size, Image.Resampling.BICUBIC)
-    target = _target_removed_fraction(amount, TEXTURE_PROFILES[texture])
+    profile_maximum = maximum if maximum is not None else TEXTURE_PROFILES[texture]
+    target = _target_removed_fraction(amount, profile_maximum)
     damage = _select_damage(score, tie_breaker, foreground, target)
     damaged_alpha = ImageChops.subtract(alpha, ImageChops.multiply(alpha, damage))
     rgba.putalpha(damaged_alpha)
     return rgba
+
+
+def _bitmap_texture_score(
+    texture_path: Path, size: tuple[int, int], rng: random.Random
+) -> Image.Image:
+    """Turn a licensed, user-installed grayscale scan into a deterministic wear field."""
+    with Image.open(texture_path) as opened:
+        grayscale = ImageOps.grayscale(ImageOps.exif_transpose(opened))
+        grayscale.load()
+
+    # Texture scans often contain hard frame shadows. Use the useful central 89%.
+    margin_x = round(grayscale.width * 0.055)
+    margin_y = round(grayscale.height * 0.055)
+    grayscale = grayscale.crop(
+        (margin_x, margin_y, grayscale.width - margin_x, grayscale.height - margin_y)
+    )
+    if rng.random() < 0.5:
+        grayscale = ImageOps.mirror(grayscale)
+    if rng.random() < 0.5:
+        grayscale = ImageOps.flip(grayscale)
+
+    # Never tile: a single large crop preserves the natural scale and clustering.
+    fitted = ImageOps.fit(
+        grayscale,
+        size,
+        method=Image.Resampling.LANCZOS,
+        centering=(rng.uniform(0.35, 0.65), rng.uniform(0.35, 0.65)),
+    )
+    # Dark marks in the scan are the parts removed from the printed ink.
+    return ImageOps.autocontrast(ImageOps.invert(fitted), cutoff=0.35)
 
 
 def _working_size(size: tuple[int, int], max_side: int = 1400) -> tuple[int, int]:
