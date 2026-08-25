@@ -122,8 +122,6 @@ form, .status, .results { border: 1px solid var(--line); background: var(--surfa
 .preset-button { min-height: 38px; padding: 8px 12px; border: 1px solid var(--line); background: transparent; color: var(--paper); font-size: .62rem; }
 .preset-button:hover:not(:disabled) { border-color: var(--acid); color: var(--acid); }
 .preset-button.danger:hover:not(:disabled) { border-color: var(--rust); color: var(--rust); }
-.variation-button { width: 100%; min-height: 38px; padding: 8px; border: 1px solid var(--line); background: var(--input); color: var(--paper); font: 700 .68rem ui-monospace, SFMono-Regular, Menlo, monospace; }
-.variation-button:hover:not(:disabled) { border-color: var(--acid); color: var(--acid); }
 .processing-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; margin-top: 12px; }
 .controls { display: grid; grid-template-columns: 1fr .45fr 1fr 1.05fr 1.05fr 1.35fr .65fr; gap: 10px; margin: 0; }
 label { display: grid; gap: 4px; font-size: .66rem; letter-spacing: .08em; text-transform: uppercase; }

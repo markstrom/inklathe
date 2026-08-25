@@ -38,9 +38,12 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert '<option value="50" selected>Worn</option>' in response.text
     assert '<option value="0">Clean</option>' not in response.text
     assert '<option value="none">Solid ink</option>' in response.text
-    assert "Pattern variation" in response.text
+    assert "Pattern placement" in response.text
+    assert '<option value="1" selected>Centered</option>' in response.text
+    assert '<option value="2">Mirrored</option>' in response.text
+    assert '<option value="3">Offset crop</option>' in response.text
     assert "Wear seed" not in response.text
-    assert 'id="next-variation"' in response.text
+    assert 'id="next-variation"' not in response.text
     assert "— not configured" in script.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text

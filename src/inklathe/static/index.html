@@ -103,9 +103,12 @@
                 <option value="100">Extreme</option>
               </select>
             </label>
-            <label>Pattern variation
-              <input name="seed" id="seed" type="hidden" value="1">
-              <button id="next-variation" class="variation-button" type="button" data-tooltip="Changes the mask crop and orientation while keeping the result reproducible">Variation 1</button>
+            <label>Pattern placement
+              <select name="seed" id="seed">
+                <option value="1" selected>Centered</option>
+                <option value="2">Mirrored</option>
+                <option value="3">Offset crop</option>
+              </select>
             </label>
           </section>
 

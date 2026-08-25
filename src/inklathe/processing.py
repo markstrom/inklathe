@@ -193,22 +193,23 @@ def apply_halftone(
         raise ValueError(f"Halftone file is not installed: {treatment}")
 
     rgba = image.convert("RGBA")
-    rng = random.Random(seed)
+    variation = _normalize_pattern_variation(seed)
+    mirror, flip, centering = _pattern_transform(variation)
     scan = _load_grayscale_scan(texture_path)
 
     # Remove incidental scanner edges while retaining one non-repeating field.
     margin_x = round(scan.width * 0.02)
     margin_y = round(scan.height * 0.02)
     scan = scan.crop((margin_x, margin_y, scan.width - margin_x, scan.height - margin_y))
-    if rng.random() < 0.5:
+    if mirror:
         scan = ImageOps.mirror(scan)
-    if rng.random() < 0.5:
+    if flip:
         scan = ImageOps.flip(scan)
     mask = ImageOps.fit(
         scan,
         rgba.size,
         method=Image.Resampling.LANCZOS,
-        centering=(rng.uniform(0.35, 0.65), rng.uniform(0.35, 0.65)),
+        centering=centering,
     )
     mask = ImageOps.autocontrast(mask, cutoff=0.5)
     if invert:
@@ -237,11 +238,12 @@ def apply_texture(
     amount = min(100, amount)
     rgba = image.convert("RGBA")
     alpha = rgba.getchannel("A")
-    rng = random.Random(seed)
+    variation = _normalize_pattern_variation(seed)
+    rng = random.Random(variation)
     foreground = alpha.point(lambda value: 255 if value >= 128 else 0)
     work_size = _working_size(rgba.size)
     work_foreground = foreground.resize(work_size, Image.Resampling.NEAREST)
-    score = _bitmap_texture_score(texture_path, work_size, rng)
+    score = _bitmap_texture_score(texture_path, work_size, variation)
     score = _protect_thin_marks(score, work_foreground)
     tie_breaker = _random_field(work_size, rng, 700, 0)
     score = score.resize(rgba.size, Image.Resampling.BICUBIC)
@@ -254,8 +256,21 @@ def apply_texture(
     return rgba
 
 
+def _normalize_pattern_variation(seed: int) -> int:
+    return ((seed - 1) % 3) + 1
+
+
+def _pattern_transform(variation: int) -> tuple[bool, bool, tuple[float, float]]:
+    transforms = {
+        1: (False, False, (0.5, 0.5)),
+        2: (True, False, (0.5, 0.5)),
+        3: (False, False, (0.38, 0.62)),
+    }
+    return transforms[_normalize_pattern_variation(variation)]
+
+
 def _bitmap_texture_score(
-    texture_path: Path, size: tuple[int, int], rng: random.Random
+    texture_path: Path, size: tuple[int, int], variation: int
 ) -> Image.Image:
     """Turn a licensed, user-installed grayscale scan into a deterministic wear field."""
     grayscale = _load_grayscale_scan(texture_path)
@@ -266,9 +281,10 @@ def _bitmap_texture_score(
     grayscale = grayscale.crop(
         (margin_x, margin_y, grayscale.width - margin_x, grayscale.height - margin_y)
     )
-    if rng.random() < 0.5:
+    mirror, flip, centering = _pattern_transform(variation)
+    if mirror:
         grayscale = ImageOps.mirror(grayscale)
-    if rng.random() < 0.5:
+    if flip:
         grayscale = ImageOps.flip(grayscale)
 
     # Never tile: a single large crop preserves the natural scale and clustering.
@@ -276,7 +292,7 @@ def _bitmap_texture_score(
         grayscale,
         size,
         method=Image.Resampling.LANCZOS,
-        centering=(rng.uniform(0.35, 0.65), rng.uniform(0.35, 0.65)),
+        centering=centering,
     )
     # Dark marks in the scan are the parts removed from the printed ink.
     return ImageOps.autocontrast(ImageOps.invert(fitted), cutoff=0.35)

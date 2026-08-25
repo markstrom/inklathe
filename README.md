@@ -17,7 +17,7 @@ workers can be installed separately on the same server.
 - Keep the source background, make a monochrome cutout, or use optional Lucida AI
 - Screen isolated ink through scanned halftone or engraved patterns
 - Apply licensed, locally installed wear masks at four fixed levels
-- Change the reproducible mask crop and orientation with Pattern variation
+- Choose a predictable mask placement: Centered, Mirrored, or Offset crop
 - Save complete processing combinations as browser-local favorites
 - Preview results full-size, zoom and pan, and compare through an original-image lens
 - Navigate previews with buttons or the left and right arrow keys
@@ -292,8 +292,8 @@ server must be restarted after catalog changes. Legacy installations with known 
 directly inside `textures/` continue to work.
 
 Dark marks in these scans become transparent ink knockouts. InkLathe uses a single
-large, non-tiled crop. Pattern variation changes its crop and orientation while keeping
-the result reproducible.
+large, non-tiled crop. Pattern placement has three fixed, reproducible choices:
+Centered, Mirrored, and Offset crop.
 
 These masks screen isolated ink into binary printable dots or engraved lines before
 the selected wear is applied. Copying an arbitrary new JPG into the directory is not
@@ -309,7 +309,7 @@ redistribution license.
 ## Favorites, results, and persistence
 
 Favorites contain the complete current processing combination, including Pattern
-variation. They are stored in the browser's local storage for this exact site origin.
+placement. They are stored in the browser's local storage for this exact site origin.
 They survive a normal page reload but do not automatically move to another browser,
 hostname, or port.
 

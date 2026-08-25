@@ -31,7 +31,6 @@ const favoriteDialog = document.querySelector("#favorite-dialog");
 const favoriteNameInput = document.querySelector("#favorite-name");
 const confirmFavoriteButton = document.querySelector("#confirm-favorite");
 const cancelFavoriteButton = document.querySelector("#cancel-favorite");
-const variationButton = document.querySelector("#next-variation");
 
 const themeModes = ["auto", "light", "dark"];
 const favoriteStorageKey = "inklathe-favorite-presets";
@@ -153,12 +152,6 @@ function setFavoriteControl(name, value) {
   return control.value === String(value);
 }
 
-function updateVariationLabel() {
-  const seed = form.elements.namedItem("seed").value;
-  variationButton.textContent = `Variation ${seed}`;
-  variationButton.setAttribute("aria-label", `Pattern variation ${seed}. Choose next variation`);
-}
-
 function applyFavorite(favorite) {
   const unavailable = favoriteSettingNames.filter((name) => (
     favorite.settings[name] === undefined
@@ -166,7 +159,6 @@ function applyFavorite(favorite) {
       : !setFavoriteControl(name, favorite.settings[name])
   ));
   wearSelect.disabled = textureSelect.value === "none";
-  updateVariationLabel();
   if (unavailable.length > 0) {
     window.alert(`Some saved settings are not currently available: ${unavailable.join(", ")}.`);
   }
@@ -639,15 +631,6 @@ favoriteNameInput.addEventListener("keydown", (event) => {
     saveCurrentFavorite();
   }
 });
-variationButton.addEventListener("click", () => {
-  const seedControl = form.elements.namedItem("seed");
-  const current = Number(seedControl.value) || 0;
-  seedControl.value = String(current >= 2147483647 ? 1 : current + 1);
-  updateVariationLabel();
-  favoritePresetSelect.value = "";
-  deleteFavoriteButton.disabled = true;
-});
-updateVariationLabel();
 deleteFavoriteButton.addEventListener("click", (event) => deleteCurrentFavorite(event.altKey));
 document.querySelector(".controls").addEventListener("change", () => {
   favoritePresetSelect.value = "";

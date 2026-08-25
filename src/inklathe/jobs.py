@@ -180,8 +180,8 @@ class JobStore:
     def _process(self, job: Job, options: ProcessOptions) -> None:
         job.state = "processing"
         try:
-            for index, item in enumerate(job.files):
-                self._process_file(item, options, options.seed + index)
+            for item in job.files:
+                self._process_file(item, options, options.seed)
                 job.completed += 1
             archive = item.output_path.parent.parent / "inklathe-results.zip"
             with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
