@@ -300,9 +300,22 @@ function removeRecentSource(id, skipConfirmation = false) {
   renderRecentSources();
 }
 
+const DROP_PROMPT_MIN_WIDTH = 160;
+
+function updateDropPromptVisibility() {
+  if (recentSources.length === 0) {
+    recentPlaceholder.hidden = false;
+    return;
+  }
+  const previews = [...inputPreview.querySelectorAll(".source-preview")];
+  const gap = Number.parseFloat(getComputedStyle(inputPreview).gap) || 0;
+  const usedWidth = previews.reduce((total, preview) => total + preview.offsetWidth, 0);
+  const availableWidth = inputPreview.clientWidth - usedWidth - (gap * previews.length);
+  recentPlaceholder.hidden = availableWidth < DROP_PROMPT_MIN_WIDTH;
+}
+
 function renderRecentSources() {
   inputPreview.replaceChildren();
-  recentPlaceholder.hidden = recentSources.length > 0;
   recentPlaceholder.disabled = submitButton.disabled;
   recentActions.hidden = recentSources.length === 0;
   selectionCount.textContent = `${selectedSourceIds.size} of ${recentSources.length} selected`;
@@ -364,7 +377,11 @@ function renderRecentSources() {
     figure.append(select, remove, caption);
     inputPreview.append(figure);
   }
+  inputPreview.append(recentPlaceholder);
+  updateDropPromptVisibility();
 }
+
+new ResizeObserver(updateDropPromptVisibility).observe(inputPreview);
 
 function resultCard(item) {
   const figure = document.createElement("figure");

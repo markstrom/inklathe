@@ -100,12 +100,13 @@ form, .status, .results { border: 1px solid var(--line); background: var(--surfa
 .recent-actions span { margin-right: auto; color: var(--muted-dim); font-size: .6rem; }
 .recent-actions button { min-height: 26px; padding: 5px 8px; border: 1px solid var(--line); background: transparent; color: var(--paper); font-size: .58rem; }
 .recent-actions button:hover:not(:disabled) { border-color: var(--acid); color: var(--acid); }
-.drop-placeholder { display: grid; width: 100%; min-height: 94px; padding: 10px; place-content: center; place-items: center; gap: 2px; background: transparent; color: var(--paper); text-align: center; }
+.drop-placeholder { display: grid; flex: 1 0 160px; min-width: 160px; min-height: 94px; padding: 10px; place-content: center; place-items: center; gap: 2px; background: transparent; color: var(--paper); text-align: center; }
 .drop-placeholder[hidden] { display: none; }
 .drop-placeholder:hover:not(:disabled) { color: var(--acid); background: var(--hover); }
 .drop-placeholder strong { font: 800 1rem Arial, sans-serif; text-transform: uppercase; }
 .drop-placeholder span { color: var(--muted-dim); font: .7rem ui-monospace, monospace; text-transform: none; }
 #input-preview { display: flex; min-width: 0; width: 100%; gap: 8px; overflow-x: auto; }
+#input-preview:has(.source-preview) .drop-placeholder { min-height: auto; align-self: stretch; border-color: var(--muted-faint); }
 .source-preview { position: relative; flex: 0 0 200px; min-width: 0; margin: 0; border: 1px solid var(--line); background: var(--surface-elevated); }
 .source-preview.selected { border-color: var(--acid); box-shadow: inset 0 0 0 1px var(--acid); }
 .source-preview.processing { box-shadow: 0 0 0 2px var(--acid); }
