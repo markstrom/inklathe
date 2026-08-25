@@ -18,6 +18,7 @@ workers can be installed separately on the same server.
 - Screen isolated ink through scanned halftone or engraved patterns
 - Apply licensed, locally installed wear masks at four fixed levels
 - Choose a predictable mask placement: Centered, Mirrored, or Offset crop
+- Alt-click Process to randomize print treatment, wear style, wear level, and placement
 - Save complete processing combinations as browser-local favorites
 - Preview results full-size, zoom and pan, and compare through an original-image lens
 - Navigate previews with buttons or the left and right arrow keys

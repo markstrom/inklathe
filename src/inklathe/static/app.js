@@ -746,6 +746,28 @@ function setBusy(busy) {
   renderRecentSources();
 }
 
+function randomSelectOption(select, { exclude = [] } = {}) {
+  const choices = [...select.options].filter((option) => (
+    !option.disabled && !exclude.includes(option.value)
+  ));
+  if (choices.length === 0) return;
+  select.value = choices[Math.floor(Math.random() * choices.length)].value;
+}
+
+function randomizePrintTreatment() {
+  randomSelectOption(halftoneSelect);
+  randomSelectOption(textureSelect, { exclude: ["none"] });
+  randomSelectOption(wearSelect);
+  randomSelectOption(form.elements.namedItem("seed"));
+  wearSelect.disabled = textureSelect.value === "none";
+  favoritePresetSelect.value = "";
+  deleteFavoriteButton.disabled = true;
+}
+
+submitButton.addEventListener("click", (event) => {
+  if (event.altKey) randomizePrintTreatment();
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   const batch = recentSources.filter((source) => selectedSourceIds.has(source.id));

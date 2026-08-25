@@ -31,6 +31,7 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert 'data-tooltip="Compare with original (C)"' in response.text
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
+    assert "Alt-click to randomize print, wear, level, and pattern placement" in response.text
     assert "Generated fallbacks" not in response.text
     assert "Vintage mix" not in response.text
     assert '<option value="none">None</option>' in response.text
@@ -49,6 +50,7 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text
     assert 'const favoriteStorageKey = "inklathe-favorite-presets"' in script.text
+    assert "function randomizePrintTreatment()" in script.text
     assert '"upscale",' in script.text
     assert '"seed",' in script.text
 
