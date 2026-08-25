@@ -346,10 +346,11 @@ history browser for reopening them.
 
 Downloads keep the original safe filename stem and append
 an always-five-character Base62 run stamp seeded from the number of seconds since
-2026-01-01 UTC. For example: `logo-00A1z.png`. If several jobs arrive within the same
-second, the server advances the stamp by one for each job. This keeps names unique and
-sortable, although a rapid queue can make the logical stamp run slightly ahead of wall
-clock time.
+2026-01-01 UTC when each individual image finishes. For example: `logo-00A1z.png`.
+Processing uses private temporary names, so failed work is never assigned a finished
+download name. If several images finish within the same second, the server advances the
+stamp by one for each image. This keeps names unique and sortable, although rapid cache
+hits can make the logical stamp run slightly ahead of wall-clock time.
 
 ## Development
 

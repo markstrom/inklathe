@@ -34,6 +34,7 @@ PREVIEW_MAX_SIZE = 640
 @dataclass
 class JobFile:
     name: str
+    output_stem: str
     input_path: Path
     output_path: Path
     preview_path: Path
@@ -116,7 +117,6 @@ class JobStore:
 
     def create(self, uploads: list[tuple[str, bytes]], options: ProcessOptions) -> Job:
         created_at = time()
-        timestamp = self._next_output_timestamp(created_at)
         job_id = uuid4().hex
         root = self.settings.data_dir / "jobs" / job_id
         input_dir = root / "input"
@@ -126,27 +126,24 @@ class JobStore:
         output_dir.mkdir(parents=True)
         preview_dir.mkdir(parents=True)
         files = []
-        output_names: set[str] = set()
         for index, (original_name, content) in enumerate(uploads):
             safe_name = _safe_name(original_name, index)
             input_path = input_dir / safe_name
             input_path.write_bytes(content)
-            output_name = f"{_safe_stem(original_name)}-{timestamp}.png"
-            if output_name in output_names:
-                output_name = f"{_safe_stem(original_name)}-{index + 1}-{timestamp}.png"
-            output_names.add(output_name)
+            working_name = f"{index + 1:02d}-processing.png"
             with Image.open(input_path) as image:
                 input_width, input_height = image.size
             files.append(
                 JobFile(
-                    safe_name,
-                    input_path,
-                    output_dir / output_name,
-                    preview_dir / output_name,
-                    input_width,
-                    input_height,
-                    len(content),
-                    sha256(content).hexdigest(),
+                    name=safe_name,
+                    output_stem=_safe_stem(original_name),
+                    input_path=input_path,
+                    output_path=output_dir / working_name,
+                    preview_path=preview_dir / working_name,
+                    input_width=input_width,
+                    input_height=input_height,
+                    input_bytes=len(content),
+                    content_hash=sha256(content).hexdigest(),
                 )
             )
         job = Job(id=job_id, options=options, created_at=created_at, files=files)
@@ -193,6 +190,7 @@ class JobStore:
         try:
             for item in job.files:
                 self._process_file(item, options, options.seed)
+                self._finalize_output_name(item)
                 job.completed += 1
             archive = item.output_path.parent.parent / "inklathe-results.zip"
             with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:
@@ -207,6 +205,20 @@ class JobStore:
         except Exception as error:  # noqa: BLE001 - worker errors must be surfaced to the UI
             job.error = str(error)
             job.state = "failed"
+
+    def _finalize_output_name(self, item: JobFile) -> None:
+        timestamp = self._next_output_timestamp(time())
+        final_name = f"{item.output_stem}-{timestamp}.png"
+        final_output = item.output_path.with_name(final_name)
+        final_preview = item.preview_path.with_name(final_name)
+        item.output_path.replace(final_output)
+        try:
+            item.preview_path.replace(final_preview)
+        except OSError:
+            final_output.replace(item.output_path)
+            raise
+        item.output_path = final_output
+        item.preview_path = final_preview
 
     def _process_file(self, item: JobFile, options: ProcessOptions, seed: int) -> None:
         item.cache_hits = []
