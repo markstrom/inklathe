@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-import shutil
 import zipfile
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from hashlib import sha256
 from pathlib import Path
 from threading import Lock
 from time import time
@@ -28,9 +29,11 @@ class JobFile:
     input_width: int
     input_height: int
     input_bytes: int
+    content_hash: str
     output_width: int | None = None
     output_height: int | None = None
     output_bytes: int | None = None
+    cache_hits: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -68,6 +71,7 @@ class Job:
                     "source": f"/api/jobs/{self.id}/sources/{index}",
                     "download": f"/api/jobs/{self.id}/files/{index}",
                     "delete": f"/api/jobs/{self.id}/files/{index}",
+                    "cache_hits": item.cache_hits,
                     "input": {
                         "width": item.input_width,
                         "height": item.input_height,
@@ -123,6 +127,7 @@ class JobStore:
                     input_width,
                     input_height,
                     len(content),
+                    sha256(content).hexdigest(),
                 )
             )
         job = Job(id=job_id, options=options, created_at=created_at, files=files)
@@ -166,7 +171,7 @@ class JobStore:
             job.state = "failed"
 
     def _process_file(self, item: JobFile, options: ProcessOptions, seed: int) -> None:
-        work = item.output_path.parent / f".{item.output_path.stem}-work.png"
+        item.cache_hits = []
         initial_options = ProcessOptions(
             background="none",
             upscale="none",
@@ -174,22 +179,60 @@ class JobStore:
             grunge=0,
             seed=seed,
         )
-        process_builtin(item.input_path, work, initial_options)
+        normalized_key = _cache_key("normalize-v1", item.content_hash)
+        normalized = self._cached_stage(
+            item,
+            "normalized",
+            normalized_key,
+            lambda destination: process_builtin(item.input_path, destination, initial_options),
+        )
+
+        prepared = normalized
+        prepared_key = normalized_key
 
         if options.upscale == "ai":
-            upscaled = work.with_name(f"{work.stem}-upscaled.png")
-            run_ai_upscaler(self.settings.ai_upscaler_command, work, upscaled, options.scale)
-            shutil.move(upscaled, work)
+            prepared_key = _cache_key(
+                "upscale-ai-v1",
+                normalized_key,
+                options.scale,
+                self.settings.ai_upscaler_command or "",
+            )
+            prepared = self._cached_stage(
+                item,
+                "upscale",
+                prepared_key,
+                lambda destination: run_ai_upscaler(
+                    self.settings.ai_upscaler_command, normalized, destination, options.scale
+                ),
+            )
         elif options.upscale == "lanczos":
-            with Image.open(work) as opened:
-                image = upscale_lanczos(opened, options.scale)
-                image.load()
-            image.save(work, "PNG")
+            prepared_key = _cache_key("upscale-lanczos-v1", normalized_key, options.scale)
+
+            def build_lanczos(destination: Path) -> None:
+                with Image.open(normalized) as opened:
+                    image = upscale_lanczos(opened, options.scale)
+                    image.load()
+                image.save(destination, "PNG")
+
+            prepared = self._cached_stage(
+                item, "upscale", prepared_key, build_lanczos
+            )
 
         if options.background == "lucida":
-            background_removed = work.with_name(f"{work.stem}-background.png")
-            run_lucida(self.settings.lucida_command, work, background_removed)
-            shutil.move(background_removed, work)
+            background_key = _cache_key(
+                "background-lucida-v1",
+                prepared_key,
+                self.settings.lucida_command or "",
+            )
+            source = prepared
+            prepared = self._cached_stage(
+                item,
+                "background",
+                background_key,
+                lambda destination: run_lucida(
+                    self.settings.lucida_command, source, destination
+                ),
+            )
         elif options.background == "threshold":
             background_options = ProcessOptions(
                 background="threshold",
@@ -198,17 +241,42 @@ class JobStore:
                 grunge=0,
                 seed=seed,
             )
-            background_removed = work.with_name(f"{work.stem}-background.png")
-            process_builtin(work, background_removed, background_options)
-            shutil.move(background_removed, work)
+            background_key = _cache_key("background-threshold-v1", prepared_key)
+            source = prepared
+            prepared = self._cached_stage(
+                item,
+                "background",
+                background_key,
+                lambda destination: process_builtin(source, destination, background_options),
+            )
 
-        with Image.open(work) as opened:
+        with Image.open(prepared) as opened:
             final = apply_texture(opened, options.grunge, options.texture, seed)
             final.load()
         final.save(item.output_path, "PNG", optimize=True)
         item.output_width, item.output_height = final.size
         item.output_bytes = item.output_path.stat().st_size
-        work.unlink(missing_ok=True)
+
+    def _cached_stage(
+        self,
+        item: JobFile,
+        stage: str,
+        key: str,
+        build: Callable[[Path], None],
+    ) -> Path:
+        destination = self.settings.data_dir / "cache" / stage / f"{key}.png"
+        if destination.exists():
+            item.cache_hits.append(stage)
+            return destination
+
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        temporary = destination.with_name(f".{destination.stem}-{uuid4().hex}.png")
+        try:
+            build(temporary)
+            temporary.replace(destination)
+        finally:
+            temporary.unlink(missing_ok=True)
+        return destination
 
 
 def _safe_name(original: str, index: int) -> str:
@@ -216,6 +284,14 @@ def _safe_name(original: str, index: int) -> str:
     if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
         suffix = ".png"
     return f"{index + 1:02d}-{_safe_stem(original)}{suffix}"
+
+
+def _cache_key(*parts: object) -> str:
+    digest = sha256()
+    for part in parts:
+        digest.update(str(part).encode())
+        digest.update(b"\0")
+    return digest.hexdigest()
 
 
 def _safe_stem(original: str) -> str:

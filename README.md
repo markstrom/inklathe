@@ -40,6 +40,7 @@ The local MVP currently supports:
 - confirmed result deletion from cards or the full-size preview
 - Alt-click deletion without confirmation for faster result cleanup
 - a single-worker job queue suitable for the target server
+- a persistent content-addressed stage cache for normalization, scaling, and background removal
 
 Lucida and the selected AI upscaler are exposed as optional worker adapters. They remain disabled in the UI until their commands and model weights are installed.
 

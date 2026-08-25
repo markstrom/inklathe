@@ -75,6 +75,65 @@ def test_result_can_be_deleted(tmp_path) -> None:
         assert client.get(f"/api/jobs/{job_id}").json()["files"] == []
 
 
+def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        common_data = {
+            "background": "threshold",
+            "upscale": "lanczos",
+            "scale": 2,
+            "texture": "vintage-tee",
+        }
+        first_response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={**common_data, "grunge": 20},
+        )
+        first_job_id = first_response.json()["id"]
+        for _ in range(50):
+            first_job = client.get(f"/api/jobs/{first_job_id}").json()
+            if first_job["state"] == "complete":
+                break
+            sleep(0.02)
+        assert first_job["files"][0]["cache_hits"] == []
+
+        cached_files = list((tmp_path / "cache").glob("*/*.png"))
+        cached_mtimes = {path: path.stat().st_mtime_ns for path in cached_files}
+        assert len(cached_files) == 3
+
+        second_response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={**common_data, "grunge": 60},
+        )
+        second_job_id = second_response.json()["id"]
+        for _ in range(50):
+            second_job = client.get(f"/api/jobs/{second_job_id}").json()
+            if second_job["state"] == "complete":
+                break
+            sleep(0.02)
+
+        assert second_job["files"][0]["cache_hits"] == [
+            "normalized",
+            "upscale",
+            "background",
+        ]
+        assert {path: path.stat().st_mtime_ns for path in cached_files} == cached_mtimes
+
+        third_response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={**common_data, "background": "none", "grunge": 20},
+        )
+        third_job_id = third_response.json()["id"]
+        for _ in range(50):
+            third_job = client.get(f"/api/jobs/{third_job_id}").json()
+            if third_job["state"] == "complete":
+                break
+            sleep(0.02)
+
+        assert third_job["files"][0]["cache_hits"] == ["normalized", "upscale"]
+
+
 def test_rejects_unconfigured_ai(tmp_path) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         response = client.post(
