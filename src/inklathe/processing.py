@@ -11,6 +11,7 @@ TEXTURE_PATHS = {
     "paper-fibers": TEXTURE_DIR / "paper-fibers.png",
     "dry-ink": TEXTURE_DIR / "dry-ink.png",
     "scratches": TEXTURE_DIR / "scratches.png",
+    "vintage-tee": TEXTURE_DIR / "vintage-tee.png",
 }
 
 
@@ -95,7 +96,7 @@ def apply_texture(
     with Image.open(TEXTURE_PATHS[texture]) as opened:
         damage = ImageOps.grayscale(opened)
         damage.load()
-    if texture == "dry-ink":
+    if texture in {"dry-ink", "vintage-tee"}:
         damage = ImageOps.invert(damage)
     damage = ImageOps.autocontrast(damage, cutoff=1)
     damage = damage.rotate(rng.choice((0, 90, 180, 270)))
@@ -111,6 +112,8 @@ def apply_texture(
     )
 
     strength = amount / 100
+    if texture == "vintage-tee":
+        strength *= 0.75
     threshold = round(252 - 190 * strength)
     opacity = min(1, 0.35 + 0.85 * strength)
     scale = 255 * opacity / max(1, 255 - threshold)

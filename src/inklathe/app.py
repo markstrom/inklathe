@@ -58,7 +58,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(400, "Unsupported upscale mode")
         if not 0 <= grunge <= 100:
             raise HTTPException(400, "Wear must be between 0 and 100")
-        if texture not in {"paper-fibers", "dry-ink", "scratches"}:
+        if texture not in {"paper-fibers", "dry-ink", "scratches", "vintage-tee"}:
             raise HTTPException(400, "Unsupported texture")
         if background == "lucida" and not settings.lucida_command:
             raise HTTPException(409, "Lucida is not installed on this worker")

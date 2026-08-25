@@ -45,6 +45,7 @@ function textureDescription(texture) {
     "paper-fibers": "Paper fibers",
     "dry-ink": "Dry ink",
     scratches: "Scratches",
+    "vintage-tee": "Vintage tee",
   }[texture] || texture;
 }
 
@@ -259,9 +260,16 @@ async function deleteResult(id, skipConfirmation = false) {
 
 fileInput.addEventListener("change", () => addRecentSources([...fileInput.files]));
 const wearSlider = document.querySelector("#wear");
+const textureSelect = document.querySelector("#texture");
 wearSlider.addEventListener("input", (event) => {
   const value = Number(event.target.value);
   document.querySelector("#wear-value").textContent = `${value} · ${wearDescription(value)}`;
+});
+textureSelect.addEventListener("change", () => {
+  if (textureSelect.value === "vintage-tee" && Number(wearSlider.value) === 0) {
+    wearSlider.value = "32";
+    wearSlider.dispatchEvent(new Event("input"));
+  }
 });
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {

@@ -44,9 +44,9 @@ def test_texture_profiles_are_distinct() -> None:
     source = remove_light_background(logo())
     results = {
         apply_texture(source, 60, texture, 42).tobytes()
-        for texture in ("paper-fibers", "dry-ink", "scratches")
+        for texture in ("paper-fibers", "dry-ink", "scratches", "vintage-tee")
     }
-    assert len(results) == 3
+    assert len(results) == 4
 
 
 def test_pipeline_upscales_and_writes_png(tmp_path: Path) -> None:
