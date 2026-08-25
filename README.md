@@ -6,6 +6,8 @@
 
 InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
 
+![InkLathe showing the original jazz cat and three Worn results made with different scanned wear masks](assets/screenshots/inklathe-wear-showcase.png)
+
 ## Initial scope
 
 - Upload one or multiple images
