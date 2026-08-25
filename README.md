@@ -14,6 +14,7 @@ InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
 - AI-based background removal
 - Reproducible grunge effects
 - Download individual PNG files or a batch archive
+- Keep downloads sortable with `original-name-00000.png` style Base62 timestamps
 - Deploy reproducibly on NixOS
 
 ## Model direction

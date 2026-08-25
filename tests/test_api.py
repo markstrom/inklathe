@@ -6,6 +6,7 @@ from PIL import Image
 
 from inklathe.app import create_app
 from inklathe.config import Settings
+from inklathe.jobs import TIMESTAMP_EPOCH, _base62_timestamp
 
 
 def image_bytes() -> bytes:
@@ -39,6 +40,9 @@ def test_job_round_trip(tmp_path) -> None:
                 break
             sleep(0.02)
         assert job["state"] == "complete"
+        result_name = job["files"][0]["name"]
+        assert result_name.startswith("logo-")
+        assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
         assert client.get(job["files"][0]["download"]).headers["content-type"] == "image/png"
         assert client.get(job["archive"]).headers["content-type"] == "application/zip"
 
@@ -71,3 +75,10 @@ def test_rejects_unconfigured_ai(tmp_path) -> None:
             data={"upscale": "ai"},
         )
         assert response.status_code == 409
+
+
+def test_base62_timestamp_is_fixed_width_and_sortable() -> None:
+    assert _base62_timestamp(TIMESTAMP_EPOCH) == "00000"
+    assert _base62_timestamp(TIMESTAMP_EPOCH + 61) == "0000z"
+    assert _base62_timestamp(TIMESTAMP_EPOCH + 62) == "00010"
+    assert _base62_timestamp(TIMESTAMP_EPOCH + 1) < _base62_timestamp(TIMESTAMP_EPOCH + 2)

@@ -15,6 +15,10 @@ from .adapters import run_ai_upscaler, run_lucida
 from .config import Settings
 from .processing import ProcessOptions, apply_grunge, process_builtin, upscale_lanczos
 
+BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+TIMESTAMP_EPOCH = 1767225600  # 2026-01-01 00:00:00 UTC
+TIMESTAMP_WIDTH = 5
+
 
 @dataclass
 class JobFile:
@@ -89,6 +93,8 @@ class JobStore:
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="inklathe-worker")
 
     def create(self, uploads: list[tuple[str, bytes]], options: ProcessOptions) -> Job:
+        created_at = time()
+        timestamp = _base62_timestamp(created_at)
         job_id = uuid4().hex
         root = self.settings.data_dir / "jobs" / job_id
         input_dir = root / "input"
@@ -96,11 +102,15 @@ class JobStore:
         input_dir.mkdir(parents=True)
         output_dir.mkdir(parents=True)
         files = []
+        output_names: set[str] = set()
         for index, (original_name, content) in enumerate(uploads):
             safe_name = _safe_name(original_name, index)
             input_path = input_dir / safe_name
             input_path.write_bytes(content)
-            output_name = f"{Path(safe_name).stem}-inklathe.png"
+            output_name = f"{_safe_stem(original_name)}-{timestamp}.png"
+            if output_name in output_names:
+                output_name = f"{_safe_stem(original_name)}-{index + 1}-{timestamp}.png"
+            output_names.add(output_name)
             with Image.open(input_path) as image:
                 input_width, input_height = image.size
             files.append(
@@ -113,7 +123,7 @@ class JobStore:
                     len(content),
                 )
             )
-        job = Job(id=job_id, options=options, files=files)
+        job = Job(id=job_id, options=options, created_at=created_at, files=files)
         with self.lock:
             self.jobs[job_id] = job
         self.executor.submit(self._process, job, options)
@@ -203,7 +213,24 @@ def _safe_name(original: str, index: int) -> str:
     suffix = Path(original).suffix.lower()
     if suffix not in {".png", ".jpg", ".jpeg", ".webp"}:
         suffix = ".png"
+    return f"{index + 1:02d}-{_safe_stem(original)}{suffix}"
+
+
+def _safe_stem(original: str) -> str:
     stem = "".join(
         character for character in Path(original).stem if character.isalnum() or character in "-_"
     )
-    return f"{index + 1:02d}-{stem[:80] or 'image'}{suffix}"
+    return stem[:80] or "image"
+
+
+def _base62_timestamp(timestamp: float) -> str:
+    value = int(timestamp) - TIMESTAMP_EPOCH
+    limit = len(BASE62_ALPHABET) ** TIMESTAMP_WIDTH
+    if not 0 <= value < limit:
+        raise ValueError("Timestamp is outside the five-character InkLathe range")
+
+    encoded = ""
+    for _ in range(TIMESTAMP_WIDTH):
+        value, remainder = divmod(value, len(BASE62_ALPHABET))
+        encoded = BASE62_ALPHABET[remainder] + encoded
+    return encoded
