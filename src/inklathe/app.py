@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import secrets
+import warnings
 from mimetypes import guess_type
 from pathlib import Path
 from typing import Annotated
@@ -69,6 +70,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "status": "ok",
             "workers": 1,
             "storage_limit_bytes": settings.max_data_bytes,
+            "max_image_pixels": settings.max_pixels,
             "capabilities": {
                 "lucida": bool(settings.lucida_command),
                 "ai_upscaler": bool(settings.ai_upscaler_command),
@@ -141,7 +143,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             content = await upload.read(settings.max_upload_bytes + 1)
             if len(content) > settings.max_upload_bytes:
                 raise HTTPException(413, f"{upload.filename} is too large")
-            _validate_image(content, upload.filename or "image")
+            name = upload.filename or "image"
+            width, height = _validate_image(content, name, settings.max_pixels)
+            _validate_processing_size(
+                name,
+                width,
+                height,
+                upscale,
+                scale,
+                settings.max_pixels,
+            )
             uploads.append((upload.filename or "image", content))
 
         options = ProcessOptions(
@@ -213,14 +224,58 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     return api
 
 
-def _validate_image(content: bytes, name: str) -> None:
+def _megapixels(pixels: int) -> str:
+    return f"{pixels / 1_000_000:.1f} MP"
+
+
+def _validate_image(content: bytes, name: str, max_pixels: int) -> tuple[int, int]:
     from io import BytesIO
 
     try:
-        with Image.open(BytesIO(content)) as image:
-            image.verify()
-    except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as error:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+            with Image.open(BytesIO(content)) as image:
+                width, height = image.size
+                pixels = width * height
+                if pixels > max_pixels:
+                    raise HTTPException(
+                        413,
+                        f"{name} is {width}×{height} ({_megapixels(pixels)}), above "
+                        f"this server's {_megapixels(max_pixels)} image limit",
+                    )
+                image.verify()
+    except HTTPException:
+        raise
+    except Image.DecompressionBombError as error:
+        raise HTTPException(
+            413,
+            f"{name} exceeds this server's {_megapixels(max_pixels)} image limit",
+        ) from error
+    except (UnidentifiedImageError, OSError) as error:
         raise HTTPException(400, f"{name} is not a supported image") from error
+    return width, height
+
+
+def _validate_processing_size(
+    name: str,
+    width: int,
+    height: int,
+    upscale: str,
+    scale: int,
+    max_pixels: int,
+) -> None:
+    applied_scale = scale if upscale != "none" else 1
+    output_width = width * applied_scale
+    output_height = height * applied_scale
+    output_pixels = output_width * output_height
+    if output_pixels <= max_pixels:
+        return
+    raise HTTPException(
+        413,
+        f"{name} would become {output_width}×{output_height} "
+        f"({_megapixels(output_pixels)}) at {applied_scale}×, above this server's "
+        f"{_megapixels(max_pixels)} image limit. Choose a lower scale or no upscaling",
+    )
 
 
 app = create_app()

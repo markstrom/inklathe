@@ -164,7 +164,7 @@ built-in Lanczos result before using an output for print.
 | `INKLATHE_DATA_DIR` | `./data` | Jobs, previews, archives, cache, and default texture directory |
 | `INKLATHE_TEXTURE_DIR` | `$INKLATHE_DATA_DIR/textures` | Optional private mask directory |
 | `INKLATHE_MAX_UPLOAD_BYTES` | `26214400` | Per-file upload limit |
-| `INKLATHE_MAX_PIXELS` | `40000000` | Maximum decoded source-image pixels |
+| `INKLATHE_MAX_PIXELS` | `40000000` | Maximum source or projected output pixels; oversized upscale requests are rejected before queueing |
 | `INKLATHE_MAX_DATA_GB` | `20` | Storage ceiling; use `0` to disable cleanup |
 | `INKLATHE_AUTH_USERNAME` | `inklathe` | HTTP Basic authentication username |
 | `INKLATHE_AUTH_PASSWORD_FILE` | unset | Preferred path to a password-only credential file |

@@ -219,6 +219,7 @@ let runSequence = 0;
 const activeRuns = new Map();
 let resultItems = [];
 let currentResultId = null;
+let maxImagePixels = null;
 const textureLabels = {};
 const halftoneLabels = { none: "Solid ink" };
 
@@ -234,6 +235,29 @@ function sourceMetadata(source) {
     ? `${source.width}×${source.height} px · `
     : "";
   return `${dimensions}${formatBytes(source.file.size)}`;
+}
+
+function formatMegapixels(pixels) {
+  return `${(pixels / 1_000_000).toFixed(1)} MP`;
+}
+
+function processingLimitError(sources) {
+  if (!maxImagePixels) return null;
+  const upscale = form.elements.namedItem("upscale").value;
+  const scale = upscale === "none"
+    ? 1
+    : Number(form.elements.namedItem("scale").value);
+  for (const source of sources) {
+    if (!source.width || !source.height) continue;
+    const width = source.width * scale;
+    const height = source.height * scale;
+    const pixels = width * height;
+    if (pixels <= maxImagePixels) continue;
+    return `${source.file.name} would become ${width}×${height} `
+      + `(${formatMegapixels(pixels)}) at ${scale}×, above this server's `
+      + `${formatMegapixels(maxImagePixels)} image limit. Choose a lower scale or no upscaling.`;
+  }
+  return null;
 }
 
 function wearDescription(value) {
@@ -859,6 +883,7 @@ async function loadCapabilities({ refresh = false } = {}) {
   const response = await fetch("/api/health");
   if (!response.ok) throw new Error("Could not read server capabilities");
   const health = await response.json();
+  maxImagePixels = Number(health.max_image_pixels) || null;
   const lucida = document.querySelector("#lucida-option");
   const ai = document.querySelector("#ai-option");
   lucida.disabled = !health.capabilities.lucida;
@@ -955,6 +980,11 @@ form.addEventListener("submit", async (event) => {
   const batch = recentSources.filter((source) => selectedSourceIds.has(source.id));
   if (batch.length === 0) {
     showError(new Error("Select at least one of your recent images"));
+    return;
+  }
+  const limitError = processingLimitError(batch);
+  if (limitError) {
+    showError(new Error(limitError));
     return;
   }
   const run = addPendingRun(batch);

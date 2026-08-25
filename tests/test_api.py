@@ -128,6 +128,22 @@ def test_job_round_trip(tmp_path) -> None:
         assert client.get(job["archive"]).headers["content-type"] == "application/zip"
 
 
+def test_job_rejects_projected_upscale_above_pixel_limit(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path, max_pixels=2_000)
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/api/jobs",
+            files=[("files", ("logo.png", image_bytes(), "image/png"))],
+            data={"upscale": "lanczos", "scale": 2},
+        )
+
+    assert response.status_code == 413
+    detail = response.json()["detail"]
+    assert "logo.png would become 64×64" in detail
+    assert "at 2×" in detail
+    assert "Choose a lower scale or no upscaling" in detail
+
+
 def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
     texture_dir = tmp_path / "textures"
     texture_dir.mkdir()
