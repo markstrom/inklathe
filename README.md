@@ -1,5 +1,3 @@
-<img src="assets/brand/github-avatar.png" alt="InkLathe" width="112">
-
 # InkLathe
 
 <img src="assets/brand/github-wordmark-white.png" alt="InkLathe terminal wordmark" width="820">
