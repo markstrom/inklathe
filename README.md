@@ -179,26 +179,65 @@ InkLathe can use high-resolution grayscale texture scans without redistributing 
 Place licensed copies in `$INKLATHE_DATA_DIR/textures` or set
 `INKLATHE_TEXTURE_DIR` to another private directory.
 
-The currently registered Wear style filenames are:
+The recommended library layout is:
 
-- `Grunge_141XL.jpg`, `Grunge_197XL.jpg`, and `Grunge_198XL.jpg`
-- `Grunge_272XL.jpg` and `Grunge_296XL.jpg` through `Grunge_299XL.jpg`
-- `Grunge_306XL.jpg` through `Grunge_311XL.jpg`
-- `Grunge_313XL.jpg` and `Grunge_327XL.jpg`
+```text
+textures/
+├── textures.json
+├── wear/
+│   └── your-wear-mask.jpg
+└── halftone/
+    └── your-print-pattern.jpg
+```
+
+`textures.json` is the library catalog and the only place where menu names and mask
+behavior are configured. For example:
+
+```json
+{
+  "version": 1,
+  "textures": [
+    {
+      "id": "my-crackle",
+      "type": "wear",
+      "file": "wear/my-crackle.jpg",
+      "name": "Dry ink crackle",
+      "category": "Screen print",
+      "maximum": 0.12
+    },
+    {
+      "id": "my-dots",
+      "type": "halftone",
+      "file": "halftone/my-dots.jpg",
+      "name": "Coarse printed dots",
+      "category": "Halftone",
+      "invert": true
+    }
+  ]
+}
+```
+
+- `id` is a stable internal identifier using lowercase letters, numbers, and hyphens.
+- `name` is the English label shown in the dropdown.
+- `category` creates the dropdown group.
+- `file` is a path relative to the texture directory.
+- `maximum` limits how much ink a Wear mask can remove at the strongest level.
+- `invert` reverses the light/dark interpretation of a Print treatment mask.
+
+InkLathe ships a default catalog for its known masks. A local `textures.json` replaces
+that catalog, so it can add, remove, rename, and reorganize treatments without a Python
+code change. Missing image files are omitted from the menus. Invalid JSON, duplicate
+IDs, unsafe paths, or invalid field values stop startup with a descriptive error. The
+server must be restarted after catalog changes. Legacy installations with known images
+directly inside `textures/` continue to work.
 
 Dark marks in these scans become transparent ink knockouts. InkLathe uses a single
 large, non-tiled crop. Pattern variation changes its crop and orientation while keeping
 the result reproducible.
 
-The currently registered Print treatment filenames are
-`Texturelabs_Grunge_242XL.jpg`, `Texturelabs_Grunge_283XL.jpg`,
-`Texturelabs_Grunge_289XL.jpg`, and `Texturelabs_Grunge_290XL.jpg`. The smaller set
-intentionally keeps only the most distinct, useful treatments in the menu.
-
 These masks screen isolated ink into binary printable dots or engraved lines before
-the selected wear is applied. File discovery, dropdown labels, categories, polarity,
-and wear limits are registered in `src/inklathe/processing.py`; copying an arbitrary
-new JPG into the directory is not enough by itself.
+the selected wear is applied. Copying an arbitrary new JPG into the directory is not
+enough by itself; add a matching entry to the local catalog.
 
 Do not commit third-party texture files unless their license explicitly permits
 redistribution as part of an image-processing application.

@@ -1,6 +1,7 @@
 from io import BytesIO
 from time import sleep
 
+import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
@@ -110,7 +111,7 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
     assert health["capabilities"]["bitmap_textures"] == [
         {
             "id": "scan-g306",
-            "label": "Heavy screen ink · G306",
+            "label": "Heavy screen ink",
             "category": "Screen print",
             "maximum_percent": 12.0,
             "kind": "scanned",
@@ -125,6 +126,73 @@ def test_local_bitmap_textures_are_discovered(tmp_path) -> None:
         }
     ]
     assert response.status_code == 202
+
+
+def test_texture_catalog_supports_named_subfolders(tmp_path) -> None:
+    texture_dir = tmp_path / "texture-library"
+    wear_dir = texture_dir / "wear"
+    halftone_dir = texture_dir / "halftone"
+    wear_dir.mkdir(parents=True)
+    halftone_dir.mkdir()
+    Image.new("L", (80, 80), 255).save(wear_dir / "fibers.jpg")
+    Image.new("L", (80, 80), 127).save(halftone_dir / "dots.jpg")
+    (texture_dir / "textures.json").write_text(
+        """{
+          "version": 1,
+          "textures": [
+            {
+              "id": "wear-fibers",
+              "type": "wear",
+              "file": "wear/fibers.jpg",
+              "name": "Soft fabric fibers",
+              "category": "Fabric",
+              "maximum": 0.08
+            },
+            {
+              "id": "halftone-dots",
+              "type": "halftone",
+              "file": "halftone/dots.jpg",
+              "name": "Round print dots",
+              "category": "Halftone",
+              "invert": true
+            }
+          ]
+        }""",
+        encoding="utf-8",
+    )
+    settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
+
+    with TestClient(create_app(settings)) as client:
+        capabilities = client.get("/api/health").json()["capabilities"]
+
+    assert [item["label"] for item in capabilities["bitmap_textures"]] == [
+        "Soft fabric fibers"
+    ]
+    assert [item["label"] for item in capabilities["halftones"]] == [
+        "Round print dots"
+    ]
+
+
+def test_texture_catalog_rejects_parent_paths(tmp_path) -> None:
+    texture_dir = tmp_path / "texture-library"
+    texture_dir.mkdir()
+    (texture_dir / "textures.json").write_text(
+        """{
+          "version": 1,
+          "textures": [{
+            "id": "unsafe",
+            "type": "wear",
+            "file": "../outside.jpg",
+            "name": "Unsafe",
+            "category": "Test",
+            "maximum": 0.1
+          }]
+        }""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="safe relative file path"):
+        create_app(Settings(data_dir=tmp_path / "data", texture_dir=texture_dir))
 
 
 def test_result_can_be_deleted(tmp_path) -> None:

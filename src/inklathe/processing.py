@@ -1,162 +1,105 @@
 from __future__ import annotations
 
+import json
 import random
+import re
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageFilter, ImageOps
 
-# These files are intentionally not distributed with InkLathe. They may be placed in
-# INKLATHE_TEXTURE_DIR by a server owner who has obtained the corresponding licenses.
-BITMAP_TEXTURE_PROFILES = {
-    "scan-g306": {
-        "filename": "Grunge_306XL.jpg",
-        "label": "Heavy screen ink · G306",
-        "category": "Screen print",
-        "maximum": 0.12,
-    },
-    "scan-g296": {
-        "filename": "Grunge_296XL.jpg",
-        "label": "Vintage screen distress · G296",
-        "category": "Screen print",
-        "maximum": 0.10,
-    },
-    "scan-g307": {
-        "filename": "Grunge_307XL.jpg",
-        "label": "Large print crackle · G307",
-        "category": "Screen print",
-        "maximum": 0.12,
-    },
-    "scan-g308": {
-        "filename": "Grunge_308XL.jpg",
-        "label": "Vintage ink wear · G308",
-        "category": "Screen print",
-        "maximum": 0.12,
-    },
-    "scan-g297": {
-        "filename": "Grunge_297XL.jpg",
-        "label": "Distressed plastisol · G297",
-        "category": "Plastisol",
-        "maximum": 0.10,
-    },
-    "scan-g298": {
-        "filename": "Grunge_298XL.jpg",
-        "label": "Vintage washed T-shirt · G298",
-        "category": "Plastisol",
-        "maximum": 0.09,
-    },
-    "scan-g299": {
-        "filename": "Grunge_299XL.jpg",
-        "label": "Cracked screen-print ink · G299",
-        "category": "Plastisol",
-        "maximum": 0.09,
-    },
-    "scan-g309": {
-        "filename": "Grunge_309XL.jpg",
-        "label": "Fine plastisol fissures · G309",
-        "category": "Plastisol",
-        "maximum": 0.09,
-    },
-    "scan-g310": {
-        "filename": "Grunge_310XL.jpg",
-        "label": "Heavy plastisol cracks · G310",
-        "category": "Plastisol",
-        "maximum": 0.11,
-    },
-    "scan-g313": {
-        "filename": "Grunge_313XL.jpg",
-        "label": "Large print cracks · G313",
-        "category": "Plastisol",
-        "maximum": 0.12,
-    },
-    "scan-g311": {
-        "filename": "Grunge_311XL.jpg",
-        "label": "Medium speckles · G311",
-        "category": "Fine wear",
-        "maximum": 0.10,
-    },
-    "scan-g272": {
-        "filename": "Grunge_272XL.jpg",
-        "label": "Weathered ink grain · G272",
-        "category": "Fine wear",
-        "maximum": 0.11,
-    },
-    "scan-g327": {
-        "filename": "Grunge_327XL.jpg",
-        "label": "Heavy grunge mask · G327",
-        "category": "Heavy wear",
-        "maximum": 0.15,
-    },
-    "scan-g141": {
-        "filename": "Grunge_141XL.jpg",
-        "label": "Detailed cracked paint · G141",
-        "category": "Paint crackle",
-        "maximum": 0.10,
-    },
-    "scan-g197": {
-        "filename": "Grunge_197XL.jpg",
-        "label": "Cracked paint on canvas · G197",
-        "category": "Paint crackle",
-        "maximum": 0.10,
-    },
-    "scan-g198": {
-        "filename": "Grunge_198XL.jpg",
-        "label": "Dense cracked paint · G198",
-        "category": "Paint crackle",
-        "maximum": 0.12,
-    },
-}
+TEXTURE_CATALOG_NAME = "textures.json"
+DEFAULT_TEXTURE_CATALOG = Path(__file__).with_name(TEXTURE_CATALOG_NAME)
+TEXTURE_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]*")
 
-# Halftone scans are also user-installed and intentionally excluded from the
-# repository. ``invert`` describes scans whose printable marks are dark on a
-# light background; the generated alpha mask always uses white for printed ink.
-HALFTONE_PROFILES = {
-    "halftone-g289": {
-        "filename": "Texturelabs_Grunge_289XL.jpg",
-        "label": "Black halftone floodcoat",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g290": {
-        "filename": "Texturelabs_Grunge_290XL.jpg",
-        "label": "Distressed halftone print",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g242": {
-        "filename": "Texturelabs_Grunge_242XL.jpg",
-        "label": "Printed halftone gradient",
-        "category": "Halftone",
-        "invert": True,
-    },
-    "halftone-g283": {
-        "filename": "Texturelabs_Grunge_283XL.jpg",
-        "label": "Detailed money pattern",
-        "category": "Engraved",
-        "invert": True,
-    },
-}
+
+def _catalog_string(entry: dict[str, object], field: str, position: int) -> str:
+    value = entry.get(field)
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"Texture entry {position} requires a non-empty {field}")
+    return value.strip()
+
+
+def _load_texture_catalog(
+    texture_dir: Path,
+) -> tuple[dict[str, dict[str, object]], dict[str, dict[str, object]]]:
+    local_catalog = texture_dir / TEXTURE_CATALOG_NAME
+    catalog_path = local_catalog if local_catalog.is_file() else DEFAULT_TEXTURE_CATALOG
+    try:
+        catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"Could not read texture catalog {catalog_path}: {error}") from error
+    if not isinstance(catalog, dict) or catalog.get("version") != 1:
+        raise ValueError(f"Texture catalog {catalog_path} must use version 1")
+    entries = catalog.get("textures")
+    if not isinstance(entries, list):
+        raise TypeError(f"Texture catalog {catalog_path} requires a textures array")
+
+    wear: dict[str, dict[str, object]] = {}
+    halftones: dict[str, dict[str, object]] = {}
+    seen_ids: set[str] = set()
+    for position, raw_entry in enumerate(entries, start=1):
+        if not isinstance(raw_entry, dict):
+            raise TypeError(f"Texture entry {position} must be an object")
+        entry: dict[str, object] = raw_entry
+        texture_id = _catalog_string(entry, "id", position)
+        if not TEXTURE_ID_PATTERN.fullmatch(texture_id):
+            raise ValueError(
+                f"Texture entry {position} has invalid id {texture_id!r}; "
+                "use lowercase letters, numbers, and hyphens"
+            )
+        if texture_id in seen_ids:
+            raise ValueError(f"Texture catalog contains duplicate id {texture_id!r}")
+        seen_ids.add(texture_id)
+        texture_type = _catalog_string(entry, "type", position)
+        if texture_type not in {"wear", "halftone"}:
+            raise ValueError(f"Texture {texture_id!r} has unsupported type {texture_type!r}")
+        relative_file = Path(_catalog_string(entry, "file", position))
+        if relative_file.is_absolute() or ".." in relative_file.parts:
+            raise ValueError(f"Texture {texture_id!r} must use a safe relative file path")
+        texture_path = texture_dir / relative_file
+        if not texture_path.is_file() and len(relative_file.parts) > 1:
+            legacy_path = texture_dir / relative_file.name
+            if legacy_path.is_file():
+                texture_path = legacy_path
+        profile: dict[str, object] = {
+            "filename": relative_file.as_posix(),
+            "label": _catalog_string(entry, "name", position),
+            "category": _catalog_string(entry, "category", position),
+            "path": texture_path,
+        }
+        if texture_type == "wear":
+            maximum = entry.get("maximum")
+            if isinstance(maximum, bool) or not isinstance(maximum, (int, float)):
+                raise ValueError(f"Wear texture {texture_id!r} requires a numeric maximum")
+            if not 0 < float(maximum) <= 1:
+                raise ValueError(
+                    f"Wear texture {texture_id!r} maximum must be above 0 and at most 1"
+                )
+            profile["maximum"] = float(maximum)
+            destination = wear
+        else:
+            invert = entry.get("invert", False)
+            if not isinstance(invert, bool):
+                raise ValueError(f"Halftone texture {texture_id!r} invert must be true or false")
+            profile["invert"] = invert
+            destination = halftones
+        if Path(str(profile["path"])).is_file():
+            destination[texture_id] = profile
+    return wear, halftones
 
 
 def available_bitmap_textures(texture_dir: Path | None) -> dict[str, dict[str, object]]:
     if texture_dir is None:
         return {}
-    return {
-        key: {**profile, "path": texture_dir / str(profile["filename"])}
-        for key, profile in BITMAP_TEXTURE_PROFILES.items()
-        if (texture_dir / str(profile["filename"])).is_file()
-    }
+    return _load_texture_catalog(texture_dir)[0]
 
 
 def available_halftones(texture_dir: Path | None) -> dict[str, dict[str, object]]:
     if texture_dir is None:
         return {}
-    return {
-        key: {**profile, "path": texture_dir / str(profile["filename"])}
-        for key, profile in HALFTONE_PROFILES.items()
-        if (texture_dir / str(profile["filename"])).is_file()
-    }
+    return _load_texture_catalog(texture_dir)[1]
 
 
 def _load_grayscale_scan(path: Path) -> Image.Image:
