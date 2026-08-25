@@ -1,19 +1,10 @@
 from __future__ import annotations
 
-import math
 import random
 from dataclasses import dataclass
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageOps
-
-TEXTURE_PROFILES = {
-    "worn-ink": 0.12,
-    "cracked-plastisol": 0.08,
-    "dry-screen": 0.15,
-    "scuffed-print": 0.07,
-    "vintage-mix": 0.15,
-}
+from PIL import Image, ImageChops, ImageFilter, ImageOps
 
 # These files are intentionally not distributed with InkLathe. They may be placed in
 # INKLATHE_TEXTURE_DIR by a server owner who has obtained the corresponding licenses.
@@ -63,7 +54,7 @@ class ProcessOptions:
     scale: int = 4
     grunge: int = 0
     seed: int = 1
-    texture: str = "vintage-mix"
+    texture: str = "scan-vintage-screen"
 
 
 def otsu_threshold(image: Image.Image) -> int:
@@ -123,7 +114,7 @@ def upscale_lanczos(image: Image.Image, scale: int) -> Image.Image:
 def apply_texture(
     image: Image.Image,
     amount: int,
-    texture: str = "vintage-mix",
+    texture: str = "scan-vintage-screen",
     seed: int = 1,
     *,
     texture_path: Path | None = None,
@@ -132,8 +123,8 @@ def apply_texture(
     """Apply deterministic, print-oriented wear as fully transparent knockouts."""
     if amount <= 0:
         return image.convert("RGBA")
-    if texture_path is None and texture not in TEXTURE_PROFILES:
-        raise ValueError(f"Unknown texture: {texture}")
+    if texture_path is None:
+        raise ValueError(f"Texture file is not installed: {texture}")
 
     amount = min(100, amount)
     rgba = image.convert("RGBA")
@@ -142,16 +133,12 @@ def apply_texture(
     foreground = alpha.point(lambda value: 255 if value >= 128 else 0)
     work_size = _working_size(rgba.size)
     work_foreground = foreground.resize(work_size, Image.Resampling.NEAREST)
-    score = (
-        _bitmap_texture_score(texture_path, work_size, rng)
-        if texture_path is not None
-        else _texture_score(texture, work_size, rng)
-    )
+    score = _bitmap_texture_score(texture_path, work_size, rng)
     score = _protect_thin_marks(score, work_foreground)
     tie_breaker = _random_field(work_size, rng, 700, 0)
     score = score.resize(rgba.size, Image.Resampling.BICUBIC)
     tie_breaker = tie_breaker.resize(rgba.size, Image.Resampling.BICUBIC)
-    profile_maximum = maximum if maximum is not None else TEXTURE_PROFILES[texture]
+    profile_maximum = maximum if maximum is not None else 0.12
     target = _target_removed_fraction(amount, profile_maximum)
     damage = _select_damage(score, tie_breaker, foreground, target)
     damaged_alpha = ImageChops.subtract(alpha, ImageChops.multiply(alpha, damage))
@@ -217,141 +204,6 @@ def _random_field(
     return field
 
 
-def _worn_ink_score(size: tuple[int, int], rng: random.Random) -> Image.Image:
-    fine = _random_field(size, rng, 380, 0.35)
-    mid = _random_field(size, rng, 105, 0.8)
-    coarse = _random_field(size, rng, 28, 2.2)
-    clustered = ImageChops.multiply(fine, ImageChops.blend(mid, coarse, 0.35))
-
-    fibers = Image.new("L", size)
-    draw = ImageDraw.Draw(fibers)
-    width, height = size
-    count = max(30, width * height // 11000)
-    unit = max(1, round(min(size) / 500))
-    for _ in range(count):
-        x = rng.randrange(width)
-        y = rng.randrange(height)
-        length = rng.randint(4 * unit, 22 * unit)
-        drift = rng.randint(-2 * unit, 2 * unit)
-        draw.line(
-            ((x, y), (x + drift, min(height - 1, y + length))),
-            fill=rng.randint(150, 255),
-            width=rng.randint(1, max(1, 2 * unit)),
-        )
-    return ImageOps.autocontrast(ImageChops.lighter(clustered, fibers), cutoff=1)
-
-
-def _dry_screen_score(size: tuple[int, int], rng: random.Random) -> Image.Image:
-    fine = _random_field(size, rng, 300, 0.45)
-    islands = _random_field(size, rng, 72, 1.25)
-    broad = _random_field(size, rng, 20, 3.0)
-    score = ImageChops.multiply(fine, ImageChops.add(islands, broad, scale=2))
-    score = score.filter(ImageFilter.MaxFilter(3))
-    return ImageOps.autocontrast(score, cutoff=1)
-
-
-def _cracked_plastisol_score(size: tuple[int, int], rng: random.Random) -> Image.Image:
-    width, height = size
-    background = _random_field(size, rng, 260, 0.5).point(lambda value: round(value * 0.3))
-    cracks = Image.new("L", size)
-    draw = ImageDraw.Draw(cracks)
-    unit = max(1, round(min(size) / 650))
-    crack_count = max(12, width * height // 32000)
-
-    for _ in range(crack_count):
-        x = rng.uniform(0, width - 1)
-        y = rng.uniform(-height * 0.08, height * 0.72)
-        length = rng.uniform(height * 0.16, height * 0.7)
-        steps = max(5, round(length / max(3, height / 45)))
-        step_y = length / steps
-        points = [(round(x), round(y))]
-        for _step in range(steps):
-            x += rng.uniform(-step_y * 0.42, step_y * 0.42)
-            y += step_y
-            points.append((round(x), round(y)))
-        intensity = rng.randint(125, 255)
-        line_width = rng.randint(unit, max(unit, 3 * unit))
-        draw.line(points, fill=intensity, width=line_width, joint="curve")
-
-        if len(points) > 5 and rng.random() < 0.75:
-            branch_index = rng.randint(2, len(points) - 3)
-            bx, by = points[branch_index]
-            direction = rng.choice((-1, 1))
-            branch = [(bx, by)]
-            for branch_step in range(rng.randint(3, 8)):
-                bx += direction * rng.uniform(2, 7) * unit
-                by += rng.uniform(2, 6) * unit
-                branch.append((round(bx), round(by)))
-            draw.line(
-                branch,
-                fill=max(90, intensity - rng.randint(10, 55)),
-                width=max(1, line_width - unit),
-                joint="curve",
-            )
-
-    chips = max(20, width * height // 26000)
-    for _ in range(chips):
-        x = rng.randrange(width)
-        y = rng.randrange(height)
-        radius_x = rng.randint(unit, 4 * unit)
-        radius_y = rng.randint(unit, 3 * unit)
-        draw.ellipse(
-            (x - radius_x, y - radius_y, x + radius_x, y + radius_y),
-            fill=rng.randint(75, 185),
-        )
-    return ImageOps.autocontrast(ImageChops.lighter(background, cracks), cutoff=1)
-
-
-def _scuffed_print_score(size: tuple[int, int], rng: random.Random) -> Image.Image:
-    width, height = size
-    background = _random_field(size, rng, 300, 0.35).point(lambda value: round(value * 0.12))
-    scuffs = Image.new("L", size)
-    draw = ImageDraw.Draw(scuffs)
-    unit = max(1, round(min(size) / 650))
-    cluster_count = max(5, width * height // 150000)
-
-    for _ in range(cluster_count):
-        cx = rng.uniform(width * 0.06, width * 0.94)
-        cy = rng.uniform(height * 0.06, height * 0.94)
-        angle = rng.uniform(-0.45, 0.45) + rng.choice((0, math.pi / 2))
-        along_x, along_y = math.cos(angle), math.sin(angle)
-        across_x, across_y = -along_y, along_x
-        for _mark in range(rng.randint(28, 70)):
-            offset = rng.uniform(-34, 34) * unit
-            start_shift = rng.uniform(-22, 22) * unit
-            length = rng.uniform(10, 85) * unit
-            start_x = cx + across_x * offset + along_x * start_shift
-            start_y = cy + across_y * offset + along_y * start_shift
-            end_x = start_x + along_x * length
-            end_y = start_y + along_y * length
-            draw.line(
-                ((round(start_x), round(start_y)), (round(end_x), round(end_y))),
-                fill=rng.randint(95, 255),
-                width=rng.randint(1, max(1, 3 * unit)),
-            )
-    return ImageOps.autocontrast(ImageChops.lighter(background, scuffs), cutoff=1)
-
-
-def _texture_score(texture: str, size: tuple[int, int], rng: random.Random) -> Image.Image:
-    if texture == "worn-ink":
-        return _worn_ink_score(size, rng)
-    if texture == "cracked-plastisol":
-        return _cracked_plastisol_score(size, rng)
-    if texture == "dry-screen":
-        return _dry_screen_score(size, rng)
-    if texture == "scuffed-print":
-        return _scuffed_print_score(size, rng)
-    if texture == "vintage-mix":
-        worn = _worn_ink_score(size, rng)
-        cracks = _cracked_plastisol_score(size, rng)
-        scuffs = _scuffed_print_score(size, rng)
-        return ImageOps.autocontrast(
-            ImageChops.blend(ImageChops.blend(worn, cracks, 0.28), scuffs, 0.14),
-            cutoff=1,
-        )
-    raise ValueError(f"Unknown texture: {texture}")
-
-
 def _protect_thin_marks(score: Image.Image, foreground: Image.Image) -> Image.Image:
     radius = max(1, round(min(foreground.size) / 320))
     interior = foreground.filter(ImageFilter.MinFilter(radius * 2 + 1))
@@ -397,11 +249,6 @@ def _select_damage(
     )
     selected_ties = ImageChops.multiply(selected_ties, ties)
     return ImageChops.lighter(damage, selected_ties)
-
-
-def apply_grunge(image: Image.Image, amount: int, seed: int) -> Image.Image:
-    """Compatibility wrapper for the original public helper."""
-    return apply_texture(image, amount, "vintage-mix", seed)
 
 
 def process_builtin(source: Path, destination: Path, options: ProcessOptions) -> None:

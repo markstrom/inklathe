@@ -27,7 +27,8 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert 'data-tooltip="Compare with original (C)"' in response.text
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
-    assert '<option value="vintage-mix">Vintage mix</option>' in response.text
+    assert "Generated fallbacks" not in response.text
+    assert "Vintage mix" not in response.text
     assert '<option value="25">Subtle</option>' in response.text
     assert '<option value="50">Worn</option>' in response.text
     assert 'type="range"' not in response.text
@@ -44,7 +45,7 @@ def test_job_round_trip(tmp_path) -> None:
                 "background": "threshold",
                 "upscale": "lanczos",
                 "scale": 2,
-                "texture": "scuffed-print",
+                "texture": "scan-vintage-screen",
             },
         )
         assert response.status_code == 202
@@ -55,7 +56,7 @@ def test_job_round_trip(tmp_path) -> None:
                 break
             sleep(0.02)
         assert job["state"] == "complete"
-        assert job["settings"]["texture"] == "scuffed-print"
+        assert job["settings"]["texture"] == "scan-vintage-screen"
         result_name = job["files"][0]["name"]
         assert result_name.startswith("logo-")
         assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
@@ -110,12 +111,16 @@ def test_result_can_be_deleted(tmp_path) -> None:
 
 
 def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
-    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+    texture_dir = tmp_path / "textures"
+    texture_dir.mkdir()
+    Image.new("L", (80, 80), 255).save(texture_dir / "Grunge_306XL.jpg")
+    settings = Settings(data_dir=tmp_path / "data", texture_dir=texture_dir)
+    with TestClient(create_app(settings)) as client:
         common_data = {
             "background": "threshold",
             "upscale": "lanczos",
             "scale": 2,
-            "texture": "vintage-mix",
+            "texture": "scan-vintage-screen",
         }
         first_response = client.post(
             "/api/jobs",
@@ -130,7 +135,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             sleep(0.02)
         assert first_job["files"][0]["cache_hits"] == []
 
-        cached_files = list((tmp_path / "cache").glob("*/*.png"))
+        cached_files = list((settings.data_dir / "cache").glob("*/*.png"))
         cached_inodes = {path: path.stat().st_ino for path in cached_files}
         assert len(cached_files) == 3
 

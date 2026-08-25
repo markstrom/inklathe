@@ -97,11 +97,6 @@ function wearDescription(value) {
 
 function textureDescription(texture) {
   return {
-    "worn-ink": "Worn ink",
-    "cracked-plastisol": "Cracked plastisol",
-    "dry-screen": "Dry screen",
-    "scuffed-print": "Scuffed print",
-    "vintage-mix": "Vintage mix",
     "scan-vintage-screen": "Vintage screen print",
     "scan-plastisol-cracks": "Plastisol cracks",
     "scan-fine-speckles": "Fine ink speckles",
@@ -112,11 +107,6 @@ function textureDescription(texture) {
 
 function estimatedWearCoverage(value, texture) {
   const maximum = {
-    "worn-ink": 12,
-    "cracked-plastisol": 8,
-    "dry-screen": 15,
-    "scuffed-print": 7,
-    "vintage-mix": 15,
     "scan-vintage-screen": 12,
     "scan-plastisol-cracks": 9,
     "scan-fine-speckles": 10,
@@ -542,9 +532,13 @@ async function loadCapabilities() {
       option.textContent = `${texture.label} — local mask`;
       group.append(option);
     }
-    textureSelect.prepend(group);
+    textureSelect.replaceChildren(group);
     textureSelect.value = scanned[0].id;
     wearSelect.value = "50";
+  } else {
+    textureSelect.disabled = true;
+    wearSelect.value = "0";
+    wearSelect.disabled = true;
   }
 }
 
