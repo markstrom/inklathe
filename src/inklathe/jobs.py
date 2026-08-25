@@ -65,6 +65,7 @@ class Job:
                     "index": index,
                     "name": item.output_path.name,
                     "source_name": item.name,
+                    "source": f"/api/jobs/{self.id}/sources/{index}",
                     "download": f"/api/jobs/{self.id}/files/{index}",
                     "delete": f"/api/jobs/{self.id}/files/{index}",
                     "input": {

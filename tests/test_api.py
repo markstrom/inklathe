@@ -49,6 +49,7 @@ def test_job_round_trip(tmp_path) -> None:
         result_name = job["files"][0]["name"]
         assert result_name.startswith("logo-")
         assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
+        assert client.get(job["files"][0]["source"]).headers["content-type"] == "image/png"
         assert client.get(job["files"][0]["download"]).headers["content-type"] == "image/png"
         assert client.get(job["archive"]).headers["content-type"] == "application/zip"
 

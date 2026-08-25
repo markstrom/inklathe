@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from mimetypes import guess_type
 from pathlib import Path
 from typing import Annotated
 
@@ -93,6 +94,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return FileResponse(
             item.output_path, media_type="image/png", filename=item.output_path.name
         )
+
+    @api.get("/api/jobs/{job_id}/sources/{index}")
+    def get_source(job_id: str, index: int) -> FileResponse:
+        job = store.get(job_id)
+        if not job or not 0 <= index < len(job.files):
+            raise HTTPException(404, "Source image not found")
+        item = job.files[index]
+        if not item.input_path.exists():
+            raise HTTPException(404, "Source image not found")
+        media_type = guess_type(item.input_path.name)[0] or "application/octet-stream"
+        return FileResponse(item.input_path, media_type=media_type, filename=item.name)
 
     @api.delete("/api/jobs/{job_id}/files/{index}", status_code=204)
     def delete_file(job_id: str, index: int) -> Response:

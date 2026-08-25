@@ -10,12 +10,14 @@ const submitButton = form.querySelector("button[type=submit]");
 const previewDialog = document.querySelector("#preview-dialog");
 const previewZoom = document.querySelector("#preview-zoom");
 const previewLarge = document.querySelector("#preview-large");
+const previewOriginal = document.querySelector("#preview-original");
 const previewTitle = document.querySelector("#preview-title");
 const previewMeta = document.querySelector("#preview-meta");
 const previewPrevious = document.querySelector("#preview-previous");
 const previewNext = document.querySelector("#preview-next");
 const previewDownload = document.querySelector("#preview-download");
 const previewDelete = document.querySelector("#preview-delete");
+const previewCompare = document.querySelector("#preview-compare");
 
 let recentSources = [];
 let selectedSourceIds = new Set();
@@ -173,6 +175,7 @@ function renderResults() {
 
 function openResultPreview(id) {
   currentResultId = id;
+  setPreviewCompare(false);
   updateResultPreview();
   if (!previewDialog.open) previewDialog.showModal();
 }
@@ -183,6 +186,7 @@ function updateResultPreview() {
   const item = resultItems[index];
   previewLarge.src = item.url;
   previewLarge.alt = item.name;
+  previewOriginal.src = item.sourceUrl;
   previewTitle.textContent = item.name;
   previewMeta.textContent = item.meta;
   previewDownload.href = item.url;
@@ -190,6 +194,14 @@ function updateResultPreview() {
   previewPrevious.disabled = index === 0;
   previewNext.disabled = index === resultItems.length - 1;
   setPreviewZoom(false);
+}
+
+function setPreviewCompare(comparing) {
+  previewZoom.classList.toggle("comparing", comparing);
+  previewCompare.setAttribute("aria-pressed", String(comparing));
+  previewCompare.setAttribute("aria-label", comparing ? "Hide original lens" : "Show original lens");
+  previewCompare.title = comparing ? "Hide original lens (C)" : "Show original lens (C)";
+  if (!comparing) previewZoom.classList.remove("pointer-inside");
 }
 
 function setPreviewZoom(zoomed) {
@@ -203,13 +215,16 @@ function setPreviewZoom(zoomed) {
   }
 }
 
-function panResultPreview(event) {
-  if (!previewZoom.classList.contains("zoomed")) return;
+function movePreviewPointer(event) {
   const bounds = previewZoom.getBoundingClientRect();
   const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
   const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
-  previewZoom.style.setProperty("--zoom-x", `${x * 100}%`);
-  previewZoom.style.setProperty("--zoom-y", `${y * 100}%`);
+  previewZoom.style.setProperty("--lens-x", `${x * bounds.width}px`);
+  previewZoom.style.setProperty("--lens-y", `${y * bounds.height}px`);
+  if (previewZoom.classList.contains("zoomed")) {
+    previewZoom.style.setProperty("--zoom-x", `${x * 100}%`);
+    previewZoom.style.setProperty("--zoom-y", `${y * 100}%`);
+  }
 }
 
 function moveResultPreview(offset) {
@@ -252,14 +267,22 @@ document.querySelector("#preview-close").addEventListener("click", () => preview
 previewZoom.addEventListener("click", () => {
   setPreviewZoom(!previewZoom.classList.contains("zoomed"));
 });
-previewZoom.addEventListener("pointermove", panResultPreview);
+previewZoom.addEventListener("pointerenter", () => previewZoom.classList.add("pointer-inside"));
+previewZoom.addEventListener("pointerleave", () => previewZoom.classList.remove("pointer-inside"));
+previewZoom.addEventListener("pointermove", movePreviewPointer);
+previewCompare.addEventListener("click", () => {
+  setPreviewCompare(!previewZoom.classList.contains("comparing"));
+});
 previewPrevious.addEventListener("click", () => moveResultPreview(-1));
 previewNext.addEventListener("click", () => moveResultPreview(1));
 previewDelete.addEventListener("click", (event) => deleteResult(currentResultId, event.altKey));
 previewDialog.addEventListener("click", (event) => {
   if (event.target === previewDialog) previewDialog.close();
 });
-previewDialog.addEventListener("close", () => setPreviewZoom(false));
+previewDialog.addEventListener("close", () => {
+  setPreviewZoom(false);
+  setPreviewCompare(false);
+});
 document.addEventListener("keydown", (event) => {
   if (!previewDialog.open) return;
   if (event.key === "ArrowLeft") {
@@ -268,6 +291,9 @@ document.addEventListener("keydown", (event) => {
   } else if (event.key === "ArrowRight") {
     event.preventDefault();
     moveResultPreview(1);
+  } else if (event.key.toLowerCase() === "c") {
+    event.preventDefault();
+    setPreviewCompare(!previewZoom.classList.contains("comparing"));
   }
 });
 
@@ -354,6 +380,7 @@ function renderRun(job) {
       id: `${job.id}:${file.index}`,
       name: file.name,
       url: file.download,
+      sourceUrl: file.source,
       deleteUrl: file.delete,
       meta: `${size} · ${wear}`,
     };
