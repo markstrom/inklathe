@@ -14,6 +14,16 @@ def image_bytes() -> bytes:
     return output.getvalue()
 
 
+def test_app_shell_is_english(tmp_path) -> None:
+    with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
+        response = client.get("/")
+
+    assert response.status_code == 200
+    assert '<html lang="en">' in response.text
+    assert "Drop images here" in response.text
+    assert "Process images" in response.text
+
+
 def test_job_round_trip(tmp_path) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         response = client.post(

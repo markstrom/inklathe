@@ -12,11 +12,11 @@ const previewTitle = document.querySelector("#preview-title");
 const previewMeta = document.querySelector("#preview-meta");
 
 const backgroundLabels = {
-  threshold: "Monokrom friläggning",
+  threshold: "Monochrome cutout",
   lucida: "Lucida AI",
-  none: "Bakgrund behållen",
+  none: "Background kept",
 };
-const upscaleLabels = { lanczos: "Lanczos", ai: "AI-modell", none: "Ingen uppskalning" };
+const upscaleLabels = { lanczos: "Lanczos", ai: "AI model", none: "No upscaling" };
 
 function formatBytes(bytes) {
   if (bytes === null || bytes === undefined) return "";
@@ -26,10 +26,10 @@ function formatBytes(bytes) {
 }
 
 function grungeDescription(value) {
-  if (value === 0) return "ingen";
-  if (value <= 25) return "lätt";
-  if (value <= 60) return "tydlig";
-  return "hård";
+  if (value === 0) return "none";
+  if (value <= 25) return "light";
+  if (value <= 60) return "pronounced";
+  return "heavy";
 }
 
 function openPreview(url, name, meta) {
@@ -47,7 +47,7 @@ function card(url, name, options = {}) {
   const previewButton = document.createElement("button");
   previewButton.className = "preview-open";
   previewButton.type = "button";
-  previewButton.title = `Visa ${name} större`;
+  previewButton.title = `View ${name} larger`;
   const image = document.createElement("img");
   image.src = url;
   image.alt = name;
@@ -62,7 +62,7 @@ function card(url, name, options = {}) {
     captionName.download = name;
   }
   const metadata = document.createElement("span");
-  metadata.textContent = options.meta || "Klicka på bilden för större vy";
+  metadata.textContent = options.meta || "Click the image for a full-size view";
   caption.append(captionName, metadata);
   figure.append(previewButton, caption);
   return figure;
@@ -112,8 +112,8 @@ async function loadCapabilities() {
   const ai = document.querySelector("#ai-option");
   lucida.disabled = !health.capabilities.lucida;
   ai.disabled = !health.capabilities.ai_upscaler;
-  lucida.textContent += lucida.disabled ? " — inte installerad" : " — redo";
-  ai.textContent += ai.disabled ? " — inte installerad" : " — redo";
+  lucida.textContent += lucida.disabled ? " — not installed" : " — ready";
+  ai.textContent += ai.disabled ? " — not installed" : " — ready";
 }
 
 form.addEventListener("submit", async (event) => {
@@ -121,11 +121,11 @@ form.addEventListener("submit", async (event) => {
   submitButton.disabled = true;
   statusBox.hidden = false;
   statusBox.className = "status";
-  statusBox.textContent = "Laddar upp…";
+  statusBox.textContent = "Uploading…";
   try {
     const response = await fetch("/api/jobs", { method: "POST", body: new FormData(form) });
     const body = await response.json();
-    if (!response.ok) throw new Error(body.detail || "Uppladdningen misslyckades");
+    if (!response.ok) throw new Error(body.detail || "Upload failed");
     await poll(body.id);
   } catch (error) {
     showPollError(error);
@@ -135,8 +135,8 @@ form.addEventListener("submit", async (event) => {
 async function poll(jobId) {
   const response = await fetch(`/api/jobs/${jobId}`);
   const job = await response.json();
-  statusBox.textContent = `Bearbetar ${job.completed} av ${job.total}…`;
-  if (job.state === "failed") throw new Error(job.error || "Bearbetningen misslyckades");
+  statusBox.textContent = `Processing ${job.completed} of ${job.total}…`;
+  if (job.state === "failed") throw new Error(job.error || "Processing failed");
   if (job.state !== "complete") {
     setTimeout(() => poll(jobId).catch(showPollError), 500);
     return;
@@ -164,26 +164,26 @@ function renderRun(job) {
   heading.className = "run-heading";
   const titleBox = document.createElement("div");
   const title = document.createElement("h3");
-  title.textContent = `Körning ${new Date(job.created_at * 1000).toLocaleTimeString("sv-SE", {
+  title.textContent = `Run ${new Date(job.created_at * 1000).toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
     second: "2-digit",
   })}`;
   const subtitle = document.createElement("span");
-  subtitle.textContent = `${job.total} ${job.total === 1 ? "bild" : "bilder"}`;
+  subtitle.textContent = `${job.total} ${job.total === 1 ? "image" : "images"}`;
   titleBox.append(title, subtitle);
   const download = document.createElement("a");
   download.className = "button secondary compact";
   download.href = job.archive;
-  download.textContent = "Ladda ner ZIP";
+  download.textContent = "Download ZIP";
   heading.append(titleBox, download);
 
   const settings = document.createElement("div");
   settings.className = "run-settings";
   settings.append(
-    settingChip("Bakgrund", backgroundLabels[job.settings.background]),
+    settingChip("Background", backgroundLabels[job.settings.background]),
     settingChip(
-      "Uppskalning",
+      "Upscaling",
       job.settings.upscale === "none"
         ? upscaleLabels.none
         : `${upscaleLabels[job.settings.upscale]} ${job.settings.scale}×`,
@@ -192,7 +192,7 @@ function renderRun(job) {
       "Grunge",
       `${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`,
     ),
-    settingChip("Slumpfrö", String(job.settings.seed)),
+    settingChip("Random seed", String(job.settings.seed)),
   );
 
   const grid = document.createElement("div");
