@@ -22,7 +22,11 @@ def test_app_shell_is_english(tmp_path) -> None:
         script = client.get("/static/app.js")
 
     assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-store"
     assert '<html lang="en">' in response.text
+    assert 'href="/static/style.css?v=' in response.text
+    assert 'src="/static/app.js?v=' in response.text
+    assert "__ASSET_VERSION__" not in response.text
     assert 'class="ascii-logo" aria-label="InkLathe"' in response.text
     assert 'id="theme-toggle"' in response.text
     assert 'id="favorite-preset"' in response.text

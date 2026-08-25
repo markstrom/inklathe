@@ -27,6 +27,7 @@ engines can be installed separately on the same server.
 - Alt-click a delete control to skip its confirmation
 - Reuse cached normalization, scaling, background, and print-treatment stages
 - Queue additional Process or Alt-Process runs while the single image worker is busy
+- Refresh versioned JavaScript and CSS automatically after a server update
 - Keep storage below a configurable ceiling by evicting cache files before old jobs
 - Name downloads with sortable five-character Base62 run stamps
 

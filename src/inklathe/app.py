@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import hashlib
 import secrets
 import warnings
 from mimetypes import guess_type
@@ -9,7 +10,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, Response, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from PIL import Image, UnidentifiedImageError
 
@@ -18,6 +19,17 @@ from .jobs import JobStore
 from .processing import ProcessOptions, available_bitmap_textures, available_halftones
 
 PACKAGE_DIR = Path(__file__).parent
+STATIC_DIR = PACKAGE_DIR / "static"
+
+
+def _versioned_index() -> str:
+    digest = hashlib.sha256()
+    for name in ("app.js", "style.css"):
+        digest.update((STATIC_DIR / name).read_bytes())
+    asset_version = digest.hexdigest()[:12]
+    return (STATIC_DIR / "index.html").read_text(encoding="utf-8").replace(
+        "__ASSET_VERSION__", asset_version
+    )
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -26,10 +38,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     store = JobStore(settings)
     bitmap_textures = available_bitmap_textures(settings.texture_dir)
     halftones = available_halftones(settings.texture_dir)
+    index_html = _versioned_index()
     api = FastAPI(title="InkLathe", version="0.1.0")
     api.state.settings = settings
     api.state.jobs = store
-    api.mount("/static", StaticFiles(directory=PACKAGE_DIR / "static"), name="static")
+    api.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
     @api.middleware("http")
     async def require_authentication(request: Request, call_next):
@@ -61,8 +74,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return await call_next(request)
 
     @api.get("/", include_in_schema=False)
-    def index() -> FileResponse:
-        return FileResponse(PACKAGE_DIR / "static" / "index.html")
+    def index() -> HTMLResponse:
+        return HTMLResponse(index_html, headers={"Cache-Control": "no-store"})
 
     @api.get("/api/health")
     def health() -> dict:
