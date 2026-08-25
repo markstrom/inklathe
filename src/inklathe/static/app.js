@@ -86,19 +86,45 @@ function formatBytes(bytes) {
 }
 
 function wearDescription(value) {
-  if (value === 0) return "none";
+  if (value === 0) return "clean";
   if (value <= 25) return "light";
-  if (value <= 60) return "pronounced";
+  if (value <= 60) return "worn";
   return "heavy";
 }
 
 function textureDescription(texture) {
   return {
-    "paper-fibers": "Paper fibers",
-    "dry-ink": "Dry ink",
-    scratches: "Scratches",
-    "vintage-tee": "Vintage tee",
+    "worn-ink": "Worn ink",
+    "cracked-plastisol": "Cracked plastisol",
+    "dry-screen": "Dry screen",
+    "scuffed-print": "Scuffed print",
+    "vintage-mix": "Vintage mix",
   }[texture] || texture;
+}
+
+function estimatedWearCoverage(value, texture) {
+  const maximum = {
+    "worn-ink": 12,
+    "cracked-plastisol": 8,
+    "dry-screen": 15,
+    "scuffed-print": 7,
+    "vintage-mix": 15,
+  }[texture] || 15;
+  return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
+}
+
+function wearLabel(value, texture) {
+  if (value === 0) return "0 · clean";
+  const coverage = estimatedWearCoverage(value, texture);
+  const digits = coverage < 10 ? 1 : 0;
+  return `${value} · ${wearDescription(value)} · ~${coverage.toFixed(digits)}% ink`;
+}
+
+function wearSummary(value, texture) {
+  if (value === 0) return "Wear 0 · clean";
+  const coverage = estimatedWearCoverage(value, texture);
+  const digits = coverage < 10 ? 1 : 0;
+  return `Wear ${value} · ${wearDescription(value)} · ~${coverage.toFixed(digits)}% ink`;
 }
 
 function sourceId(file) {
@@ -285,7 +311,7 @@ function renderResults() {
 function addPendingRun(batch) {
   const token = Date.now();
   const wear = Number(wearSlider.value);
-  const settings = `${textureDescription(textureSelect.value)} · Wear ${wear} · ${wearDescription(wear)}`;
+  const settings = `${textureDescription(textureSelect.value)} · ${wearSummary(wear, textureSelect.value)}`;
   activePendingItems = batch.map((source, index) => ({
     id: `pending:${token}:${index}`,
     pending: true,
@@ -300,7 +326,7 @@ function addPendingRun(batch) {
 
 function resultFromFile(job, file) {
   const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
-  const wear = `${textureDescription(job.settings.texture)} · Wear ${job.settings.grunge} · ${wearDescription(job.settings.grunge)}`;
+  const wear = `${textureDescription(job.settings.texture)} · ${wearSummary(job.settings.grunge, job.settings.texture)}`;
   return {
     id: `${job.id}:${file.index}`,
     pending: false,
@@ -439,13 +465,10 @@ const wearSlider = document.querySelector("#wear");
 const textureSelect = document.querySelector("#texture");
 wearSlider.addEventListener("input", (event) => {
   const value = Number(event.target.value);
-  document.querySelector("#wear-value").textContent = `${value} · ${wearDescription(value)}`;
+  document.querySelector("#wear-value").textContent = wearLabel(value, textureSelect.value);
 });
 textureSelect.addEventListener("change", () => {
-  if (textureSelect.value === "vintage-tee" && Number(wearSlider.value) === 0) {
-    wearSlider.value = "32";
-    wearSlider.dispatchEvent(new Event("input"));
-  }
+  wearSlider.dispatchEvent(new Event("input"));
 });
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {

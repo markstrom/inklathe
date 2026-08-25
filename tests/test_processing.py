@@ -3,6 +3,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw
 
 from inklathe.processing import (
+    TEXTURE_PROFILES,
     ProcessOptions,
     apply_grunge,
     apply_texture,
@@ -44,9 +45,31 @@ def test_texture_profiles_are_distinct() -> None:
     source = remove_light_background(logo())
     results = {
         apply_texture(source, 60, texture, 42).tobytes()
-        for texture in ("paper-fibers", "dry-ink", "scratches", "vintage-tee")
+        for texture in (
+            "worn-ink",
+            "cracked-plastisol",
+            "dry-screen",
+            "scuffed-print",
+            "vintage-mix",
+        )
     }
-    assert len(results) == 4
+    assert len(results) == 5
+
+
+def test_wear_is_calibrated_and_uses_binary_knockouts() -> None:
+    source = Image.new("RGBA", (384, 384), (0, 0, 0, 255))
+    pixels = source.width * source.height
+
+    for texture, maximum in TEXTURE_PROFILES.items():
+        light = apply_texture(source, 4, texture, 42).getchannel("A")
+        worn = apply_texture(source, 60, texture, 42).getchannel("A")
+        light_removed = light.get_flattened_data().count(0) / pixels
+        worn_removed = worn.get_flattened_data().count(0) / pixels
+        expected_worn = maximum * 0.6**1.55
+
+        assert light_removed < 0.002
+        assert abs(worn_removed - expected_worn) < 0.002
+        assert set(worn.get_flattened_data()) <= {0, 255}
 
 
 def test_pipeline_upscales_and_writes_png(tmp_path: Path) -> None:

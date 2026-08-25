@@ -12,7 +12,7 @@ InkLathe is a self-hosted AI image workshop for transforming logos and artwork.
 - Preview and compare results
 - AI-based image upscaling
 - AI-based background removal
-- Reproducible bitmap wear using original paper, dry-ink, scratch, and vintage-tee masks
+- Reproducible print wear with worn ink, plastisol cracks, dry-screen, scuff, and mixed profiles
 - Download individual PNG files or a batch archive
 - Keep downloads sortable with `original-name-00000.png` style Base62 timestamps
 - Deploy reproducibly on NixOS
@@ -31,7 +31,7 @@ The local MVP currently supports:
 - a five-image recent-source tray with selection and active-processing states
 - a monochrome background-removal baseline
 - 2× and 4× Lanczos previews
-- reproducible bitmap wear with three distinct texture profiles
+- reproducible, print-oriented wear with five procedural texture profiles
 - a compact, newest-first result gallery with dimensions, file sizes, and wear values
 - full-size image previews with button and keyboard navigation
 - a 2.5× click-to-zoom preview with pointer-position panning

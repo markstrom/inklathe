@@ -11,7 +11,7 @@ from PIL import Image, UnidentifiedImageError
 
 from .config import Settings
 from .jobs import JobStore
-from .processing import ProcessOptions
+from .processing import TEXTURE_PROFILES, ProcessOptions
 
 PACKAGE_DIR = Path(__file__).parent
 
@@ -49,7 +49,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scale: Annotated[int, Form()] = 4,
         grunge: Annotated[int, Form()] = 0,
         seed: Annotated[int, Form()] = 1,
-        texture: Annotated[str, Form()] = "paper-fibers",
+        texture: Annotated[str, Form()] = "vintage-mix",
     ) -> dict:
         if not 1 <= len(files) <= 20:
             raise HTTPException(400, "Upload between 1 and 20 images")
@@ -59,7 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(400, "Unsupported upscale mode")
         if not 0 <= grunge <= 100:
             raise HTTPException(400, "Wear must be between 0 and 100")
-        if texture not in {"paper-fibers", "dry-ink", "scratches", "vintage-tee"}:
+        if texture not in TEXTURE_PROFILES:
             raise HTTPException(400, "Unsupported texture")
         if background == "lucida" and not settings.lucida_command:
             raise HTTPException(409, "Lucida is not installed on this worker")

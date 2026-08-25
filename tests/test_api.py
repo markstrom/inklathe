@@ -26,7 +26,7 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert 'data-tooltip="Compare with original (C)"' in response.text
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
-    assert '<option value="vintage-tee">Vintage tee</option>' in response.text
+    assert '<option value="vintage-mix">Vintage mix</option>' in response.text
 
 
 def test_job_round_trip(tmp_path) -> None:
@@ -38,7 +38,7 @@ def test_job_round_trip(tmp_path) -> None:
                 "background": "threshold",
                 "upscale": "lanczos",
                 "scale": 2,
-                "texture": "scratches",
+                "texture": "scuffed-print",
             },
         )
         assert response.status_code == 202
@@ -49,7 +49,7 @@ def test_job_round_trip(tmp_path) -> None:
                 break
             sleep(0.02)
         assert job["state"] == "complete"
-        assert job["settings"]["texture"] == "scratches"
+        assert job["settings"]["texture"] == "scuffed-print"
         result_name = job["files"][0]["name"]
         assert result_name.startswith("logo-")
         assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
@@ -89,7 +89,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             "background": "threshold",
             "upscale": "lanczos",
             "scale": 2,
-            "texture": "vintage-tee",
+            "texture": "vintage-mix",
         }
         first_response = client.post(
             "/api/jobs",
