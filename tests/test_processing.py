@@ -50,10 +50,10 @@ def test_bitmap_texture_is_reproducible_and_calibrated(tmp_path: Path) -> None:
 
     assert first.tobytes() == repeated.tobytes()
     assert first.tobytes() != changed_seed.tobytes()
-    assert set(first.getchannel("A").get_flattened_data()) <= {0, 255}
+    assert set(first.getchannel("A").tobytes()) <= {0, 255}
     pixels = source.width * source.height
-    subtle_removed = subtle.getchannel("A").get_flattened_data().count(0) / pixels
-    extreme_removed = extreme.getchannel("A").get_flattened_data().count(0) / pixels
+    subtle_removed = subtle.getchannel("A").tobytes().count(0) / pixels
+    extreme_removed = extreme.getchannel("A").tobytes().count(0) / pixels
     assert abs(subtle_removed - 0.12 * 0.25**1.55) < 0.002
     assert abs(extreme_removed - 0.12) < 0.002
 
@@ -75,7 +75,7 @@ def test_halftone_scan_becomes_binary_ink_mask(tmp_path: Path) -> None:
     )
 
     assert first.tobytes() == repeated.tobytes()
-    assert set(first.getchannel("A").get_flattened_data()) == {0, 255}
+    assert set(first.getchannel("A").tobytes()) == {0, 255}
 
 
 def test_pipeline_upscales_and_writes_png(tmp_path: Path) -> None:
