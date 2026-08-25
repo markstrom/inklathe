@@ -86,10 +86,13 @@ function formatBytes(bytes) {
 }
 
 function wearDescription(value) {
-  if (value === 0) return "clean";
-  if (value <= 25) return "light";
-  if (value <= 60) return "worn";
-  return "heavy";
+  return {
+    0: "clean",
+    25: "subtle",
+    50: "worn",
+    75: "heavy",
+    100: "extreme",
+  }[value] || "custom";
 }
 
 function textureDescription(texture) {
@@ -121,13 +124,6 @@ function estimatedWearCoverage(value, texture) {
     "scan-washed-ink": 11,
   }[texture] || 15;
   return maximum * (Math.max(0, Math.min(100, value)) / 100) ** 1.55;
-}
-
-function wearLabel(value, texture) {
-  if (value === 0) return "0 · clean";
-  const coverage = estimatedWearCoverage(value, texture);
-  const digits = coverage < 10 ? 1 : 0;
-  return `${value} · ${wearDescription(value)} · ~${coverage.toFixed(digits)}% ink`;
 }
 
 function wearSummary(value, texture) {
@@ -326,7 +322,7 @@ function renderResults() {
 
 function addPendingRun(batch) {
   const token = Date.now();
-  const wear = Number(wearSlider.value);
+  const wear = Number(wearSelect.value);
   const settings = `${textureDescription(textureSelect.value)} · ${wearSummary(wear, textureSelect.value)}`;
   activePendingItems = batch.map((source, index) => ({
     id: `pending:${token}:${index}`,
@@ -477,15 +473,8 @@ clearSourceSelection.addEventListener("click", () => {
   selectedSourceIds.clear();
   renderRecentSources();
 });
-const wearSlider = document.querySelector("#wear");
+const wearSelect = document.querySelector("#wear");
 const textureSelect = document.querySelector("#texture");
-wearSlider.addEventListener("input", (event) => {
-  const value = Number(event.target.value);
-  document.querySelector("#wear-value").textContent = wearLabel(value, textureSelect.value);
-});
-textureSelect.addEventListener("change", () => {
-  wearSlider.dispatchEvent(new Event("input"));
-});
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {
   setPreviewZoom(!previewZoom.classList.contains("zoomed"));
@@ -555,8 +544,7 @@ async function loadCapabilities() {
     }
     textureSelect.prepend(group);
     textureSelect.value = scanned[0].id;
-    wearSlider.value = "40";
-    wearSlider.dispatchEvent(new Event("input"));
+    wearSelect.value = "50";
   }
 }
 

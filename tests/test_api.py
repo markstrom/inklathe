@@ -28,6 +28,9 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
     assert '<option value="vintage-mix">Vintage mix</option>' in response.text
+    assert '<option value="25">Subtle</option>' in response.text
+    assert '<option value="50">Worn</option>' in response.text
+    assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text
 

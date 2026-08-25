@@ -32,6 +32,7 @@ The local MVP currently supports:
 - a monochrome background-removal baseline
 - 2× and 4× Lanczos previews
 - reproducible, print-oriented wear with local bitmap masks and five generated fallbacks
+- five clear wear levels: Clean, Subtle, Worn, Heavy, and Extreme
 - a compact, newest-first result gallery with dimensions, file sizes, and wear values
 - full-size image previews with button and keyboard navigation
 - a 2.5× click-to-zoom preview with pointer-position panning
