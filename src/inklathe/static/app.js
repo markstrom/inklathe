@@ -90,7 +90,6 @@ function formatBytes(bytes) {
 
 function wearDescription(value) {
   return {
-    0: "clean",
     25: "subtle",
     50: "worn",
     75: "heavy",
@@ -116,7 +115,6 @@ function estimatedWearCoverage(value, texture) {
 }
 
 function wearSummary(value, texture) {
-  if (value === 0) return "Wear 0 · clean";
   const coverage = estimatedWearCoverage(value, texture);
   const digits = coverage < 10 ? 1 : 0;
   return `Wear ${value} · ${wearDescription(value)} · ~${coverage.toFixed(digits)}% ink`;
@@ -125,7 +123,11 @@ function wearSummary(value, texture) {
 function treatmentSummary(halftone, wear, texture) {
   const parts = [];
   if (halftone !== "none") parts.push(halftoneDescription(halftone));
-  parts.push(textureDescription(texture), wearSummary(wear, texture));
+  if (texture !== "none" && wear > 0) {
+    parts.push(textureDescription(texture), wearSummary(wear, texture));
+  } else {
+    parts.push("No wear");
+  }
   return parts.join(" · ");
 }
 
@@ -480,6 +482,9 @@ clearSourceSelection.addEventListener("click", () => {
 const wearSelect = document.querySelector("#wear");
 const textureSelect = document.querySelector("#texture");
 const halftoneSelect = document.querySelector("#halftone");
+textureSelect.addEventListener("change", () => {
+  wearSelect.disabled = textureSelect.value === "none";
+});
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
 previewZoom.addEventListener("click", () => {
   setPreviewZoom(!previewZoom.classList.contains("zoomed"));
@@ -568,12 +573,15 @@ async function loadCapabilities() {
       option.textContent = textureMenuLabel(texture.label);
       groups.get(texture.category).append(option);
     }
-    textureSelect.replaceChildren(...groups.values());
-    textureSelect.value = scanned[0].id;
+    const none = document.createElement("option");
+    none.value = "none";
+    none.textContent = "None";
+    textureSelect.replaceChildren(none, ...groups.values());
+    textureSelect.value = "none";
     wearSelect.value = "50";
+    wearSelect.disabled = true;
   } else {
     textureSelect.disabled = true;
-    wearSelect.value = "0";
     wearSelect.disabled = true;
   }
 }

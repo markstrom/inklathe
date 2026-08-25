@@ -29,8 +29,10 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert ">Process</button>" in response.text
     assert "Generated fallbacks" not in response.text
     assert "Vintage mix" not in response.text
+    assert '<option value="none">None</option>' in response.text
     assert '<option value="25">Subtle</option>' in response.text
-    assert '<option value="50">Worn</option>' in response.text
+    assert '<option value="50" selected>Worn</option>' in response.text
+    assert '<option value="0">Clean</option>' not in response.text
     assert '<option value="none">Solid ink</option>' in response.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
