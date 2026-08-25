@@ -20,6 +20,7 @@ from .processing import ProcessOptions, apply_texture, process_builtin, upscale_
 BASE62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 TIMESTAMP_EPOCH = 1767225600  # 2026-01-01 00:00:00 UTC
 TIMESTAMP_WIDTH = 5
+PREVIEW_MAX_SIZE = 640
 
 
 @dataclass
@@ -27,6 +28,7 @@ class JobFile:
     name: str
     input_path: Path
     output_path: Path
+    preview_path: Path
     input_width: int
     input_height: int
     input_bytes: int
@@ -70,6 +72,7 @@ class Job:
                     "name": item.output_path.name,
                     "source_name": item.name,
                     "source": f"/api/jobs/{self.id}/sources/{index}",
+                    "preview": f"/api/jobs/{self.id}/previews/{index}",
                     "download": f"/api/jobs/{self.id}/files/{index}",
                     "delete": f"/api/jobs/{self.id}/files/{index}",
                     "cache_hits": item.cache_hits,
@@ -85,7 +88,7 @@ class Job:
                     },
                 }
                 for index, item in enumerate(self.files)
-                if item.output_path.exists()
+                if index < self.completed and item.output_path.exists()
             ],
             "archive": f"/api/jobs/{self.id}/archive" if self.archive_path else None,
         }
@@ -106,8 +109,10 @@ class JobStore:
         root = self.settings.data_dir / "jobs" / job_id
         input_dir = root / "input"
         output_dir = root / "output"
+        preview_dir = root / "preview"
         input_dir.mkdir(parents=True)
         output_dir.mkdir(parents=True)
+        preview_dir.mkdir(parents=True)
         files = []
         output_names: set[str] = set()
         for index, (original_name, content) in enumerate(uploads):
@@ -125,6 +130,7 @@ class JobStore:
                     safe_name,
                     input_path,
                     output_dir / output_name,
+                    preview_dir / output_name,
                     input_width,
                     input_height,
                     len(content),
@@ -154,6 +160,7 @@ class JobStore:
             if not item.output_path.exists():
                 return False
             item.output_path.unlink()
+            item.preview_path.unlink(missing_ok=True)
             if job.archive_path:
                 job.archive_path.unlink(missing_ok=True)
                 job.archive_path = None
@@ -262,6 +269,9 @@ class JobStore:
         with Image.open(prepared) as opened:
             final = apply_texture(opened, options.grunge, options.texture, seed)
             final.load()
+        preview = final.copy()
+        preview.thumbnail((PREVIEW_MAX_SIZE, PREVIEW_MAX_SIZE), Image.Resampling.LANCZOS)
+        preview.save(item.preview_path, "PNG", optimize=True)
         final.save(item.output_path, "PNG", optimize=True)
         item.output_width, item.output_height = final.size
         item.output_bytes = item.output_path.stat().st_size

@@ -107,6 +107,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         media_type = guess_type(item.input_path.name)[0] or "application/octet-stream"
         return FileResponse(item.input_path, media_type=media_type, filename=item.name)
 
+    @api.get("/api/jobs/{job_id}/previews/{index}")
+    def get_preview(job_id: str, index: int) -> FileResponse:
+        job = store.get(job_id)
+        if not job or not 0 <= index < len(job.files):
+            raise HTTPException(404, "Preview not found")
+        item = job.files[index]
+        if not item.preview_path.exists():
+            raise HTTPException(404, "Preview is not ready")
+        return FileResponse(item.preview_path, media_type="image/png")
+
     @api.delete("/api/jobs/{job_id}/files/{index}", status_code=204)
     def delete_file(job_id: str, index: int) -> Response:
         if not store.delete_result(job_id, index):

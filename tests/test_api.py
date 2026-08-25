@@ -51,6 +51,10 @@ def test_job_round_trip(tmp_path) -> None:
         assert result_name.startswith("logo-")
         assert len(result_name.removesuffix(".png").rsplit("-", 1)[1]) == 5
         assert client.get(job["files"][0]["source"]).headers["content-type"] == "image/png"
+        preview_response = client.get(job["files"][0]["preview"])
+        assert preview_response.headers["content-type"] == "image/png"
+        with Image.open(BytesIO(preview_response.content)) as preview:
+            assert max(preview.size) <= 640
         assert client.get(job["files"][0]["download"]).headers["content-type"] == "image/png"
         assert client.get(job["archive"]).headers["content-type"] == "application/zip"
 
@@ -72,6 +76,7 @@ def test_result_can_be_deleted(tmp_path) -> None:
         result = job["files"][0]
         assert client.delete(result["delete"]).status_code == 204
         assert client.get(result["download"]).status_code == 404
+        assert client.get(result["preview"]).status_code == 404
         assert client.get(f"/api/jobs/{job_id}").json()["files"] == []
 
 

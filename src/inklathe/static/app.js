@@ -147,7 +147,7 @@ function resultCard(item) {
   open.type = "button";
   open.title = `View ${item.name} larger`;
   const image = document.createElement("img");
-  image.src = item.url;
+  image.src = item.thumbnailUrl || item.url;
   image.alt = item.name;
   open.append(image);
   open.addEventListener("click", () => openResultPreview(item.id));
@@ -222,6 +222,7 @@ function resultFromFile(job, file) {
     pending: false,
     index: file.index,
     name: file.name,
+    thumbnailUrl: file.preview,
     url: file.download,
     sourceUrl: file.source,
     deleteUrl: file.delete,
