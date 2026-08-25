@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import zipfile
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -133,6 +134,10 @@ class JobStore:
         job = Job(id=job_id, options=options, created_at=created_at, files=files)
         with self.lock:
             self.jobs[job_id] = job
+        try:
+            self._enforce_storage_limit(job.id)
+        except OSError:
+            pass
         self.executor.submit(self._process, job, options)
         return job
 
@@ -166,6 +171,10 @@ class JobStore:
                     bundle.write(item.output_path, item.output_path.name)
             job.archive_path = archive
             job.state = "complete"
+            try:
+                self._enforce_storage_limit(job.id)
+            except OSError:
+                pass
         except Exception as error:  # noqa: BLE001 - worker errors must be surfaced to the UI
             job.error = str(error)
             job.state = "failed"
@@ -267,6 +276,7 @@ class JobStore:
         destination = self.settings.data_dir / "cache" / stage / f"{key}.png"
         if destination.exists():
             item.cache_hits.append(stage)
+            destination.touch()
             return destination
 
         destination.parent.mkdir(parents=True, exist_ok=True)
@@ -277,6 +287,56 @@ class JobStore:
         finally:
             temporary.unlink(missing_ok=True)
         return destination
+
+    def _enforce_storage_limit(self, current_job_id: str) -> None:
+        limit = self.settings.max_data_bytes
+        if limit <= 0:
+            return
+        total = _directory_size(self.settings.data_dir)
+        if total <= limit:
+            return
+        target = int(limit * 0.9)
+
+        cache_dir = self.settings.data_dir / "cache"
+        cache_files = sorted(
+            (path for path in cache_dir.glob("*/*.png") if path.is_file()),
+            key=lambda path: path.stat().st_mtime_ns,
+        )
+        for path in cache_files:
+            if total <= target:
+                break
+            size = path.stat().st_size
+            path.unlink(missing_ok=True)
+            total -= size
+
+        with self.lock:
+            protected_jobs = {
+                job_id
+                for job_id, job in self.jobs.items()
+                if job.state in {"queued", "processing"}
+            }
+        protected_jobs.add(current_job_id)
+        jobs_dir = self.settings.data_dir / "jobs"
+        job_directories = (
+            sorted(
+                (
+                    path
+                    for path in jobs_dir.iterdir()
+                    if path.is_dir() and path.name not in protected_jobs
+                ),
+                key=lambda path: path.stat().st_mtime_ns,
+            )
+            if jobs_dir.exists()
+            else []
+        )
+        for path in job_directories:
+            if total <= target:
+                break
+            size = _directory_size(path)
+            shutil.rmtree(path)
+            total -= size
+            with self.lock:
+                self.jobs.pop(path.name, None)
 
 
 def _safe_name(original: str, index: int) -> str:
@@ -292,6 +352,12 @@ def _cache_key(*parts: object) -> str:
         digest.update(str(part).encode())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def _directory_size(directory: Path) -> int:
+    if not directory.exists():
+        return 0
+    return sum(path.stat().st_size for path in directory.rglob("*") if path.is_file())
 
 
 def _safe_stem(original: str) -> str:

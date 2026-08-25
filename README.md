@@ -41,6 +41,7 @@ The local MVP currently supports:
 - Alt-click deletion without confirmation for faster result cleanup
 - a single-worker job queue suitable for the target server
 - a persistent content-addressed stage cache for normalization, scaling, and background removal
+- a 20 GB storage ceiling that evicts least-recently-used cache files before old jobs
 
 Lucida and the selected AI upscaler are exposed as optional worker adapters. They remain disabled in the UI until their commands and model weights are installed.
 
@@ -53,6 +54,10 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 INKLATHE_DATA_DIR=./data .venv/bin/inklathe
 ```
+
+Set `INKLATHE_MAX_DATA_GB` to change the total storage ceiling. When the limit is
+reached, InkLathe cleans down to 90%, evicting cache files before completed jobs.
+The current and queued jobs are always protected. Set it to `0` to disable cleanup.
 
 Open <http://127.0.0.1:8787>.
 

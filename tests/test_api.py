@@ -97,7 +97,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
         assert first_job["files"][0]["cache_hits"] == []
 
         cached_files = list((tmp_path / "cache").glob("*/*.png"))
-        cached_mtimes = {path: path.stat().st_mtime_ns for path in cached_files}
+        cached_inodes = {path: path.stat().st_ino for path in cached_files}
         assert len(cached_files) == 3
 
         second_response = client.post(
@@ -117,7 +117,7 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             "upscale",
             "background",
         ]
-        assert {path: path.stat().st_mtime_ns for path in cached_files} == cached_mtimes
+        assert {path: path.stat().st_ino for path in cached_files} == cached_inodes
 
         third_response = client.post(
             "/api/jobs",
@@ -132,6 +132,39 @@ def test_processing_stages_are_reused_for_new_grunge(tmp_path) -> None:
             sleep(0.02)
 
         assert third_job["files"][0]["cache_hits"] == ["normalized", "upscale"]
+
+
+def test_storage_limit_removes_old_jobs_before_current_job(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path, max_data_bytes=1)
+    with TestClient(create_app(settings)) as client:
+        first_response = client.post(
+            "/api/jobs",
+            files=[("files", ("first.png", image_bytes(), "image/png"))],
+            data={"upscale": "none"},
+        )
+        first_job_id = first_response.json()["id"]
+        for _ in range(50):
+            first_job = client.get(f"/api/jobs/{first_job_id}").json()
+            if first_job["state"] == "complete":
+                break
+            sleep(0.02)
+
+        second_response = client.post(
+            "/api/jobs",
+            files=[("files", ("second.png", image_bytes(), "image/png"))],
+            data={"upscale": "none"},
+        )
+        second_job_id = second_response.json()["id"]
+        for _ in range(50):
+            second_job_response = client.get(f"/api/jobs/{second_job_id}")
+            second_job = second_job_response.json()
+            if second_job["state"] == "complete":
+                break
+            sleep(0.02)
+
+        assert client.get(f"/api/jobs/{first_job_id}").status_code == 404
+        assert client.get(f"/api/jobs/{second_job_id}").status_code == 200
+        assert (tmp_path / "jobs" / second_job_id).exists()
 
 
 def test_rejects_unconfigured_ai(tmp_path) -> None:

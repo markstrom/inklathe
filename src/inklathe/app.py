@@ -34,6 +34,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {
             "status": "ok",
             "workers": 1,
+            "storage_limit_bytes": settings.max_data_bytes,
             "capabilities": {
                 "lucida": bool(settings.lucida_command),
                 "ai_upscaler": bool(settings.ai_upscaler_command),
