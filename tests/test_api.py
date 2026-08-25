@@ -37,6 +37,9 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert '<option value="50" selected>Worn</option>' in response.text
     assert '<option value="0">Clean</option>' not in response.text
     assert '<option value="none">Solid ink</option>' in response.text
+    assert "Pattern variation" in response.text
+    assert "Wear seed" not in response.text
+    assert 'id="next-variation"' in response.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text

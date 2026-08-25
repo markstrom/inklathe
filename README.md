@@ -74,7 +74,7 @@ installed `Grunge_141XL.jpg`, `Grunge_197XL.jpg`, `Grunge_198XL.jpg`,
 `Grunge_327XL.jpg` files.
 Detected masks appear first in the Wear style menu. The app converts dark scanned
 marks into binary transparent ink knockouts, uses one large non-tiled crop, and keeps
-the result reproducible through Wear seed.
+the result reproducible through the Pattern variation control.
 
 The optional Print treatment menu recognizes `Texturelabs_Grunge_234XL.jpg`,
 `Texturelabs_Grunge_242XL.jpg`, `Texturelabs_Grunge_246XL.jpg`,
