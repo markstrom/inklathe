@@ -24,6 +24,7 @@ dev = [
 
 [project.scripts]
 inklathe = "inklathe.__main__:main"
+inklathe-realesrgan-adapter = "inklathe.realesrgan_adapter:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/inklathe"]
@@ -33,4 +34,3 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-

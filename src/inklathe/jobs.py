@@ -270,7 +270,7 @@ class JobStore:
 
         if options.upscale == "ai":
             prepared_key = _cache_key(
-                "upscale-ai-v1",
+                "upscale-ai-v2",
                 normalized_key,
                 options.scale,
                 self.settings.ai_upscaler_command or "",

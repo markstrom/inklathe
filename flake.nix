@@ -21,6 +21,7 @@
             pythonPackages: with pythonPackages; [
               einops
               huggingface-hub
+              kornia
               pillow
               timm
               torch
@@ -51,10 +52,6 @@
             pythonImportsCheck = [ "inklathe" ];
 
             postInstall = ''
-              install -Dm755 scripts/realesrgan_adapter.sh \
-                $out/libexec/inklathe/realesrgan_adapter.sh
-              install -Dm755 scripts/realesrgan_adapter.sh \
-                $out/bin/inklathe-realesrgan-adapter
               install -Dm755 scripts/inklathe-engine.sh $out/bin/inklathe-engine
               substituteInPlace $out/bin/inklathe-engine \
                 --replace-fail '@PACKAGE_ROOT@' "$out"
@@ -65,9 +62,7 @@
                   $out/libexec/inklathe/engines/$script.sh
               done
               for script in \
-                $out/bin/inklathe-realesrgan-adapter \
                 $out/bin/inklathe-engine \
-                $out/libexec/inklathe/realesrgan_adapter.sh \
                 $out/libexec/inklathe/engines/*.sh; do
                 substituteInPlace "$script" \
                   --replace-fail '#!/usr/bin/env bash' '#!${pkgs.bash}/bin/bash'

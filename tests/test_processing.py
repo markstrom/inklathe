@@ -9,6 +9,7 @@ from inklathe.processing import (
     process_builtin,
     remove_light_background,
 )
+from inklathe.realesrgan_adapter import _model_input, _restore_alpha
 
 
 def logo() -> Image.Image:
@@ -21,6 +22,21 @@ def test_background_becomes_transparent() -> None:
     result = remove_light_background(logo(), softness=4)
     assert result.getpixel((0, 0))[3] == 0
     assert result.getpixel((32, 32))[3] == 255
+
+
+def test_realesrgan_adapter_restores_source_alpha() -> None:
+    source = Image.new("RGBA", (4, 3), (0, 0, 0, 0))
+    source.putpixel((1, 1), (12, 34, 56, 255))
+    model_input, alpha = _model_input(source)
+
+    assert model_input.mode == "RGB"
+    assert model_input.getpixel((0, 0)) == (255, 255, 255)
+    assert model_input.getpixel((1, 1)) == (12, 34, 56)
+
+    model_output = Image.new("RGB", (8, 6), (30, 40, 50))
+    result = _restore_alpha(model_output, alpha, (8, 6))
+    assert result.mode == "RGBA"
+    assert result.getchannel("A").getextrema() == (0, 255)
 
 
 def test_bitmap_texture_is_reproducible_and_calibrated(tmp_path: Path) -> None:

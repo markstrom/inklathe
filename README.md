@@ -124,8 +124,10 @@ COMMAND INPUT_PATH OUTPUT_PATH SCALE
 `OUTPUT_PATH`. InkLathe does not currently bundle or require UCAN. UCAN remains a
 research candidate, but there is no UCAN-specific adapter in this repository.
 
-The one-command installer uses NixOS's packaged `realesrgan-ncnn-vulkan`. For a manual
-or non-NixOS installation, the repository also includes
+The one-command installer uses NixOS's packaged `realesrgan-ncnn-vulkan` and InkLathe's
+Python adapter. The adapter sends an opaque RGB image to Real-ESRGAN and restores the
+source alpha channel separately, preventing transparent artwork from becoming an empty
+result. For a manual or non-NixOS installation, the repository also includes
 [`scripts/realesrgan_adapter.sh`](scripts/realesrgan_adapter.sh), which translates the
 contract to the official
 [`realesrgan-ncnn-vulkan`](https://github.com/xinntao/Real-ESRGAN) command-line syntax.
@@ -136,6 +138,7 @@ chmod +x scripts/realesrgan_adapter.sh
 export INKLATHE_REALESRGAN_BIN=/opt/realesrgan/realesrgan-ncnn-vulkan
 export INKLATHE_REALESRGAN_MODEL_DIR=/opt/realesrgan/models
 export INKLATHE_REALESRGAN_MODEL=realesrgan-x4plus
+export INKLATHE_PYTHON=/absolute/path/to/inklathe/.venv/bin/python
 export INKLATHE_AI_UPSCALER_COMMAND=/absolute/path/to/inklathe/scripts/realesrgan_adapter.sh
 INKLATHE_DATA_DIR=./data .venv/bin/inklathe
 ```
