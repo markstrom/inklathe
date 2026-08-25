@@ -11,13 +11,6 @@ const previewLarge = document.querySelector("#preview-large");
 const previewTitle = document.querySelector("#preview-title");
 const previewMeta = document.querySelector("#preview-meta");
 
-const backgroundLabels = {
-  threshold: "Monochrome cutout",
-  lucida: "Lucida AI",
-  none: "Background kept",
-};
-const upscaleLabels = { lanczos: "Lanczos", ai: "AI model", none: "No upscaling" };
-
 function formatBytes(bytes) {
   if (bytes === null || bytes === undefined) return "";
   if (bytes < 1024) return `${bytes} B`;
@@ -55,15 +48,28 @@ function card(url, name, options = {}) {
   previewButton.addEventListener("click", () => openPreview(url, name, options.meta || ""));
 
   const caption = document.createElement("figcaption");
-  const captionName = document.createElement(options.downloadable ? "a" : "strong");
+  const captionHeading = document.createElement("div");
+  captionHeading.className = "caption-heading";
+  const captionName = document.createElement("strong");
   captionName.textContent = name;
+  captionHeading.append(captionName);
   if (options.downloadable) {
-    captionName.href = url;
-    captionName.download = name;
+    const download = document.createElement("a");
+    download.className = "download-icon";
+    download.href = url;
+    download.download = name;
+    download.title = `Download ${name}`;
+    download.setAttribute("aria-label", `Download ${name}`);
+    download.innerHTML = `
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3v12m0 0 5-5m-5 5-5-5M5 20h14" />
+      </svg>
+    `;
+    captionHeading.append(download);
   }
   const metadata = document.createElement("span");
   metadata.textContent = options.meta || "Click the image for a full-size view";
-  caption.append(captionName, metadata);
+  caption.append(captionHeading, metadata);
   figure.append(previewButton, caption);
   return figure;
 }
@@ -146,17 +152,6 @@ async function poll(jobId) {
   submitButton.disabled = false;
 }
 
-function settingChip(label, value) {
-  const chip = document.createElement("span");
-  chip.className = "setting-chip";
-  const key = document.createElement("small");
-  key.textContent = label;
-  const content = document.createElement("strong");
-  content.textContent = value;
-  chip.append(key, content);
-  return chip;
-}
-
 function renderRun(job) {
   const run = document.createElement("article");
   run.className = "result-run";
@@ -178,36 +173,19 @@ function renderRun(job) {
   download.textContent = "Download ZIP";
   heading.append(titleBox, download);
 
-  const settings = document.createElement("div");
-  settings.className = "run-settings";
-  settings.append(
-    settingChip(
-      "Upscaling",
-      job.settings.upscale === "none"
-        ? upscaleLabels.none
-        : `${upscaleLabels[job.settings.upscale]} ${job.settings.scale}×`,
-    ),
-    settingChip("Background", backgroundLabels[job.settings.background]),
-    settingChip(
-      "Grunge",
-      `${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`,
-    ),
-    settingChip("Random seed", String(job.settings.seed)),
-  );
-
   const grid = document.createElement("div");
-  grid.className = "preview-grid";
+  grid.className = "preview-grid result-grid";
   for (const file of job.files) {
-    const dimensions = `${file.input.width}×${file.input.height} → ${file.output.width}×${file.output.height} px`;
-    const sizes = `${formatBytes(file.input.bytes)} → ${formatBytes(file.output.bytes)}`;
+    const size = `${file.output.width}×${file.output.height} px · ${formatBytes(file.output.bytes)}`;
+    const grunge = `Grunge ${job.settings.grunge} · ${grungeDescription(job.settings.grunge)}`;
     grid.append(
       card(file.download, file.name, {
         downloadable: true,
-        meta: `${dimensions} · ${sizes}`,
+        meta: `${size} · ${grunge}`,
       }),
     );
   }
-  run.append(heading, settings, grid);
+  run.append(heading, grid);
   resultHistory.prepend(run);
   results.hidden = false;
 }

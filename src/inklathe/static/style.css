@@ -51,8 +51,12 @@ button:disabled { opacity: .45; cursor: wait; }
 .preview-open:hover img { filter: brightness(.78); }
 .preview img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0/20px 20px; }
 .preview figcaption { display: grid; gap: 4px; padding: 10px; overflow: hidden; font-size: .75rem; }
-.preview figcaption a, .preview figcaption strong { overflow: hidden; color: var(--paper); text-overflow: ellipsis; white-space: nowrap; }
+.caption-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.preview figcaption strong { overflow: hidden; color: var(--paper); text-overflow: ellipsis; white-space: nowrap; }
 .preview figcaption span { color: #918d84; font-size: .64rem; line-height: 1.35; }
+.download-icon { display: grid; flex: 0 0 30px; width: 30px; height: 30px; place-items: center; border: 1px solid var(--line); color: var(--paper); text-decoration: none; }
+.download-icon:hover { border-color: var(--acid); color: var(--acid); }
+.download-icon svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-linecap: square; stroke-linejoin: miter; stroke-width: 2; }
 .status, .results { margin-top: 24px; }
 .status.failed { border-color: var(--rust); color: var(--rust); }
 .result-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
@@ -63,10 +67,7 @@ button:disabled { opacity: .45; cursor: wait; }
 .run-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .run-heading h3 { margin: 0; font: 800 1.05rem Arial, sans-serif; text-transform: uppercase; }
 .run-heading span { color: #77736a; font-size: .7rem; }
-.run-settings { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.setting-chip { display: grid; gap: 2px; min-width: 120px; padding: 8px 10px; border: 1px solid #34332f; background: #111; }
-.setting-chip small { color: #77736a; font-size: .56rem; text-transform: uppercase; }
-.setting-chip strong { font-size: .7rem; font-weight: 500; }
+.result-grid { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 dialog { width: min(94vw, 1100px); max-height: 92vh; padding: 0; border: 1px solid var(--line); background: #111; color: var(--paper); box-shadow: 18px 18px 0 rgba(0,0,0,.5); }
 dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
 dialog img { display: block; width: 100%; max-height: calc(92vh - 68px); object-fit: contain; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0/24px 24px; }
