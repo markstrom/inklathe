@@ -170,6 +170,7 @@ dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
 .settings-heading .eyebrow { margin: 0 0 5px; }
 .settings-heading h2 { margin: 0; font: 800 1.15rem Arial, sans-serif; text-transform: uppercase; }
 .settings-intro, .settings-service p, .settings-note, .settings-actions span { margin: 0; color: var(--muted); font-size: .72rem; }
+.settings-footnote { margin: -8px 0 0; color: var(--muted-faint); font-size: .64rem; }
 .settings-link { display: inline-block; margin-left: .35em; color: var(--acid); }
 .settings-services { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .settings-service { display: grid; align-content: start; gap: 10px; padding: 14px; border: 1px solid var(--line); background: var(--surface-elevated); }

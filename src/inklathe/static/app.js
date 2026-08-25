@@ -37,6 +37,7 @@ const settingsDialog = document.querySelector("#settings-dialog");
 const settingsClose = document.querySelector("#settings-close");
 const settingsRecheck = document.querySelector("#settings-recheck");
 const settingsCopy = document.querySelector("#settings-copy");
+const settingsRemove = document.querySelector("#settings-remove");
 const upscalerStatus = document.querySelector("#upscaler-status");
 const lucidaStatus = document.querySelector("#lucida-status");
 const settingsWorkerNote = document.querySelector("#settings-worker-note");
@@ -693,20 +694,46 @@ settingsClose.addEventListener("click", () => settingsDialog.close());
 settingsDialog.addEventListener("click", (event) => {
   if (event.target === settingsDialog) settingsDialog.close();
 });
-settingsCopy.addEventListener("click", async () => {
-  const template = `services.inklathe = {
+async function copySettingsTemplate(button, template) {
+  const originalLabel = button.textContent;
+  try {
+    await navigator.clipboard.writeText(template);
+    button.textContent = "Copied";
+  } catch (_) {
+    button.textContent = "Copy failed";
+  }
+  setTimeout(() => { button.textContent = originalLabel; }, 1600);
+}
+
+settingsCopy.addEventListener("click", () => {
+  const template = `# Add these lines to the existing services.inklathe block.
+services.inklathe = {
   lucidaCommand = "/opt/lucida/.venv/bin/bgr";
   realEsrganBinary = "/opt/realesrgan/realesrgan-ncnn-vulkan";
   realEsrganModelDir = "/opt/realesrgan/models";
   realEsrganModel = "realesrgan-x4plus";
-};`;
-  try {
-    await navigator.clipboard.writeText(template);
-    settingsCopy.textContent = "Copied";
-  } catch (_) {
-    settingsCopy.textContent = "Copy failed";
-  }
-  setTimeout(() => { settingsCopy.textContent = "Copy NixOS template"; }, 1600);
+};
+
+# Then apply it from SSH:
+sudo nixos-rebuild switch --flake /etc/nixos#server`;
+  copySettingsTemplate(settingsCopy, template);
+});
+settingsRemove.addEventListener("click", () => {
+  const template = `# Remove the AI option lines from the existing services.inklathe block,
+# or set the optional command paths to null:
+services.inklathe = {
+  aiUpscalerCommand = null;
+  realEsrganBinary = null;
+  realEsrganModelDir = null;
+  lucidaCommand = null;
+};
+
+# Then apply it from SSH:
+sudo nixos-rebuild switch --flake /etc/nixos#server
+
+# This disconnects the workers without deleting InkLathe data.
+# Remove externally installed AI files separately only after verifying their paths.`;
+  copySettingsTemplate(settingsRemove, template);
 });
 settingsRecheck.addEventListener("click", async () => {
   settingsRecheck.disabled = true;

@@ -78,6 +78,10 @@ reported when a job tries to use it.
 Open `AI setup` in the web interface to see the current configuration and recheck it
 after a server rebuild. For safety, the page cannot install packages or change executable
 paths: those operations remain part of the administrator-controlled NixOS configuration.
+The dialog can copy matching install and uninstall configuration. The uninstall version
+disconnects optional AI workers but deliberately leaves InkLathe uploads, results, masks,
+favorites, and application files untouched. Externally installed model directories should
+only be removed separately after their actual server paths have been verified.
 
 ### Background removal: Lucida
 

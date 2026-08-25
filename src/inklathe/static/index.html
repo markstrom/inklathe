@@ -177,10 +177,15 @@
         <div class="settings-actions">
           <span>Change NixOS settings, rebuild the server, then check again.</span>
           <div class="settings-buttons">
-            <button id="settings-copy" class="preset-button" type="button">Copy NixOS template</button>
+            <button id="settings-copy" class="preset-button" type="button">Copy install config</button>
+            <button id="settings-remove" class="preset-button danger" type="button">Copy uninstall config</button>
             <button id="settings-recheck" class="preset-button" type="button">Check again</button>
           </div>
         </div>
+        <p class="settings-footnote">
+          Uninstall configuration disconnects both AI workers. It never removes uploads,
+          results, masks, favorites, or the InkLathe application.
+        </p>
       </div>
     </dialog>
 
