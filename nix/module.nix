@@ -130,6 +130,7 @@ in
       description = "InkLathe image workshop";
       wantedBy = [ "multi-user.target" ];
       after = [ "network.target" ];
+      path = [ pkgs.bash ];
       environment = {
         INKLATHE_HOST = "127.0.0.1";
         INKLATHE_PORT = toString cfg.port;

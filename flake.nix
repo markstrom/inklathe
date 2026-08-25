@@ -64,6 +64,14 @@
                 install -Dm755 scripts/engines/$script.sh \
                   $out/libexec/inklathe/engines/$script.sh
               done
+              for script in \
+                $out/bin/inklathe-realesrgan-adapter \
+                $out/bin/inklathe-engine \
+                $out/libexec/inklathe/realesrgan_adapter.sh \
+                $out/libexec/inklathe/engines/*.sh; do
+                substituteInPlace "$script" \
+                  --replace-fail '#!/usr/bin/env bash' '#!${pkgs.bash}/bin/bash'
+              done
             '';
 
             meta = {
