@@ -80,7 +80,10 @@ button:disabled { opacity: .45; cursor: wait; }
 .result-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
 dialog { width: min(94vw, 1100px); max-height: 92vh; padding: 0; border: 1px solid var(--line); background: #111; color: var(--paper); box-shadow: 18px 18px 0 rgba(0,0,0,.5); }
 dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
-dialog img { display: block; width: 100%; max-height: calc(92vh - 68px); object-fit: contain; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0/24px 24px; }
+.preview-zoom { --zoom-x: 50%; --zoom-y: 50%; display: grid; width: 100%; padding: 0; place-items: center; overflow: hidden; background: repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0/24px 24px; cursor: zoom-in; }
+.preview-zoom img { display: block; width: 100%; max-height: calc(92vh - 68px); object-fit: contain; transform-origin: var(--zoom-x) var(--zoom-y); transition: transform .18s ease; }
+.preview-zoom.zoomed { cursor: zoom-out; }
+.preview-zoom.zoomed img { transform: scale(2.5); }
 .dialog-actions { position: absolute; z-index: 2; top: 12px; right: 12px; display: flex; gap: 6px; }
 .dialog-icon { display: grid; width: 42px; height: 42px; padding: 0; place-items: center; border: 1px solid #5b5952; background: rgba(17,17,17,.9); color: var(--paper); font-size: 1.5rem; text-decoration: none; }
 .dialog-icon:hover { border-color: var(--acid); color: var(--acid); }

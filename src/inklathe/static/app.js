@@ -8,6 +8,7 @@ const results = document.querySelector("#results");
 const resultHistory = document.querySelector("#result-history");
 const submitButton = form.querySelector("button[type=submit]");
 const previewDialog = document.querySelector("#preview-dialog");
+const previewZoom = document.querySelector("#preview-zoom");
 const previewLarge = document.querySelector("#preview-large");
 const previewTitle = document.querySelector("#preview-title");
 const previewMeta = document.querySelector("#preview-meta");
@@ -180,6 +181,27 @@ function updateResultPreview() {
   previewDownload.download = item.name;
   previewPrevious.disabled = index === 0;
   previewNext.disabled = index === resultItems.length - 1;
+  setPreviewZoom(false);
+}
+
+function setPreviewZoom(zoomed) {
+  previewZoom.classList.toggle("zoomed", zoomed);
+  previewZoom.setAttribute("aria-pressed", String(zoomed));
+  previewZoom.setAttribute("aria-label", zoomed ? "Zoom out" : "Zoom in");
+  previewZoom.title = zoomed ? "Click to zoom out" : "Click to zoom in";
+  if (!zoomed) {
+    previewZoom.style.setProperty("--zoom-x", "50%");
+    previewZoom.style.setProperty("--zoom-y", "50%");
+  }
+}
+
+function panResultPreview(event) {
+  if (!previewZoom.classList.contains("zoomed")) return;
+  const bounds = previewZoom.getBoundingClientRect();
+  const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
+  const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
+  previewZoom.style.setProperty("--zoom-x", `${x * 100}%`);
+  previewZoom.style.setProperty("--zoom-y", `${y * 100}%`);
 }
 
 function moveResultPreview(offset) {
@@ -219,12 +241,17 @@ grungeSlider.addEventListener("input", (event) => {
   document.querySelector("#grunge-value").textContent = `${value} · ${grungeDescription(value)}`;
 });
 document.querySelector("#preview-close").addEventListener("click", () => previewDialog.close());
+previewZoom.addEventListener("click", () => {
+  setPreviewZoom(!previewZoom.classList.contains("zoomed"));
+});
+previewZoom.addEventListener("pointermove", panResultPreview);
 previewPrevious.addEventListener("click", () => moveResultPreview(-1));
 previewNext.addEventListener("click", () => moveResultPreview(1));
 previewDelete.addEventListener("click", (event) => deleteResult(currentResultId, event.altKey));
 previewDialog.addEventListener("click", (event) => {
   if (event.target === previewDialog) previewDialog.close();
 });
+previewDialog.addEventListener("close", () => setPreviewZoom(false));
 document.addEventListener("keydown", (event) => {
   if (!previewDialog.open) return;
   if (event.key === "ArrowLeft") {

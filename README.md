@@ -34,6 +34,7 @@ The local MVP currently supports:
 - reproducible, progressively scaled grunge
 - a compact, newest-first result gallery with dimensions, file sizes, and grunge values
 - full-size image previews with button and keyboard navigation
+- a 2.5× click-to-zoom preview with pointer-position panning
 - individual PNG downloads from every result card
 - confirmed result deletion from cards or the full-size preview
 - Alt-click deletion without confirmation for faster result cleanup
