@@ -18,6 +18,7 @@ def image_bytes() -> bytes:
 def test_app_shell_is_english(tmp_path) -> None:
     with TestClient(create_app(Settings(data_dir=tmp_path))) as client:
         response = client.get("/")
+        script = client.get("/static/app.js")
 
     assert response.status_code == 200
     assert '<html lang="en">' in response.text
@@ -27,6 +28,8 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
     assert '<option value="vintage-mix">Vintage mix</option>' in response.text
+    assert "Alt-click to skip confirmation" in script.text
+    assert "Remove ${source.file.name} from recent images?" in script.text
 
 
 def test_job_round_trip(tmp_path) -> None:

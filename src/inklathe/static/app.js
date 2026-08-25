@@ -152,6 +152,18 @@ function addRecentSources(files) {
   fileInput.value = "";
 }
 
+function removeRecentSource(id, skipConfirmation = false) {
+  const source = recentSources.find((item) => item.id === id);
+  if (!source || submitButton.disabled) return;
+  if (!skipConfirmation && !window.confirm(`Remove ${source.file.name} from recent images?`)) {
+    return;
+  }
+  URL.revokeObjectURL(source.url);
+  recentSources = recentSources.filter((item) => item.id !== source.id);
+  selectedSourceIds.delete(source.id);
+  renderRecentSources();
+}
+
 function renderRecentSources() {
   inputPreview.replaceChildren();
   recentPlaceholder.hidden = recentSources.length > 0;
@@ -202,20 +214,14 @@ function renderRecentSources() {
     remove.type = "button";
     remove.className = "source-remove";
     remove.disabled = submitButton.disabled;
-    remove.title = `Remove ${source.file.name} from recent images`;
+    remove.title = `Remove ${source.file.name} from recent images (Alt-click to skip confirmation)`;
     remove.setAttribute("aria-label", `Remove ${source.file.name} from recent images`);
     remove.innerHTML = `
       <svg viewBox="0 0 24 24" aria-hidden="true">
         <path d="M4 7h16M9 3h6l1 4H8l1-4Zm-2 4 1 14h8l1-14M10 11v6m4-6v6" />
       </svg>
     `;
-    remove.addEventListener("click", () => {
-      if (submitButton.disabled) return;
-      URL.revokeObjectURL(source.url);
-      recentSources = recentSources.filter((item) => item.id !== source.id);
-      selectedSourceIds.delete(source.id);
-      renderRecentSources();
-    });
+    remove.addEventListener("click", (event) => removeRecentSource(source.id, event.altKey));
 
     const caption = document.createElement("figcaption");
     caption.textContent = source.file.name;
