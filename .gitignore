@@ -1,0 +1,40 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# JavaScript
+node_modules/
+dist/
+.vite/
+
+# Runtime data
+data/
+uploads/
+outputs/
+jobs/
+tmp/
+
+# AI model weights
+models/
+weights/
+checkpoints/
+*.ckpt
+*.onnx
+*.pth
+*.pt
+*.safetensors
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/
