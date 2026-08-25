@@ -45,7 +45,14 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert '<option value="3">Offset crop</option>' in response.text
     assert "Wear seed" not in response.text
     assert 'id="next-variation"' not in response.text
-    assert 'element.textContent = configured ? "Configured" : "Not configured";' in script.text
+    assert ">Engines</button>" in response.text
+    assert "Processing engines" in response.text
+    assert 'id="ai-option" hidden' in response.text
+    assert 'id="lucida-option" hidden' in response.text
+    assert 'element.textContent = configured ? "Available" : "Not available";' in script.text
+    assert "function setEngineOption(" in script.text
+    assert 'id="upscaler-install"' in response.text
+    assert 'id="lucida-remove"' in response.text
     assert 'type="range"' not in response.text
     assert "Alt-click to skip confirmation" in script.text
     assert "Remove ${source.file.name} from recent images?" in script.text

@@ -22,7 +22,7 @@
         <div class="header-top">
           <p class="eyebrow">SELF-HOSTED IMAGE WORKSHOP</p>
           <div class="display-controls" aria-label="Display settings">
-            <button id="settings-open" class="utility-button" type="button">AI setup</button>
+            <button id="settings-open" class="utility-button" type="button">Engines</button>
             <button id="theme-toggle" class="utility-button" type="button">Theme: Auto</button>
           </div>
         </div>
@@ -69,7 +69,7 @@
             <label>Upscaling
               <select name="upscale" id="upscale">
                 <option value="lanczos">Lanczos preview</option>
-                <option value="ai" id="ai-option">AI model</option>
+                <option value="ai" id="ai-option" hidden>Real-ESRGAN</option>
                 <option value="none">None</option>
               </select>
             </label>
@@ -82,7 +82,7 @@
             <label>Background
               <select name="background" id="background">
                 <option value="threshold">Monochrome cutout</option>
-                <option value="lucida" id="lucida-option">Lucida AI</option>
+                <option value="lucida" id="lucida-option" hidden>Lucida</option>
                 <option value="none">Keep original</option>
               </select>
             </label>
@@ -145,46 +145,75 @@
         <div class="settings-heading">
           <div>
             <p class="eyebrow">SERVER SETTINGS</p>
-            <h2>Optional AI workers</h2>
+            <h2>Processing engines</h2>
           </div>
-          <button id="settings-close" class="dialog-icon" type="button" aria-label="Close AI setup">×</button>
+          <button id="settings-close" class="dialog-icon" type="button" aria-label="Close engines">×</button>
         </div>
         <p class="settings-intro">
-          AI models run as separate server programs. This page checks the current setup;
-          installation and command paths remain administrator-managed on the NixOS server.
-          <a class="settings-link" href="https://github.com/markstrom/inklathe#optional-ai-workers" target="_blank" rel="noreferrer">Open installation guide</a>
+          Built-in engines are always ready. Optional engines run as separate server
+          programs and only appear in the processing controls when available.
+          <a class="settings-link" href="https://github.com/markstrom/inklathe#processing-engines" target="_blank" rel="noreferrer">Open engine guide</a>
         </p>
-        <div class="settings-services">
-          <section class="settings-service">
-            <div class="settings-service-heading">
-              <h3>AI upscaling</h3>
-              <strong id="upscaler-status" class="service-status">Checking…</strong>
-            </div>
-            <p>Use a generic adapter command, or configure the included Real-ESRGAN adapter.</p>
-            <code>services.inklathe.aiUpscalerCommand</code>
-            <code>services.inklathe.realEsrganBinary</code>
-          </section>
-          <section class="settings-service">
-            <div class="settings-service-heading">
-              <h3>AI background removal</h3>
-              <strong id="lucida-status" class="service-status">Checking…</strong>
-            </div>
-            <p>Install Lucida and point InkLathe at its <code>bgr</code> executable.</p>
-            <code>services.inklathe.lucidaCommand</code>
-          </section>
+        <div class="settings-engine-group">
+          <h3 class="settings-engine-label">Built-in</h3>
+          <div class="settings-services">
+            <section class="settings-service">
+              <div class="settings-service-heading">
+                <h3>Lanczos</h3>
+                <strong class="service-status ready">Available</strong>
+              </div>
+              <p>Fast local upscaling through Pillow. No separate installation.</p>
+              <code>Upscaling</code>
+            </section>
+            <section class="settings-service">
+              <div class="settings-service-heading">
+                <h3>Monochrome cutout</h3>
+                <strong class="service-status ready">Available</strong>
+              </div>
+              <p>Local Otsu-based removal for light backgrounds.</p>
+              <code>Background removal</code>
+            </section>
+          </div>
+        </div>
+        <div class="settings-engine-group">
+          <h3 class="settings-engine-label">Optional</h3>
+          <div class="settings-services">
+            <section class="settings-service">
+              <div class="settings-service-heading">
+                <h3>Real-ESRGAN</h3>
+                <strong id="upscaler-status" class="service-status">Checking…</strong>
+              </div>
+              <p>External AI upscaling through InkLathe's command adapter.</p>
+              <code>services.inklathe.realEsrganBinary</code>
+              <div class="settings-service-actions">
+                <button id="upscaler-install" class="preset-button" type="button">Copy setup config</button>
+                <button id="upscaler-remove" class="preset-button danger" type="button">Copy remove config</button>
+              </div>
+            </section>
+            <section class="settings-service">
+              <div class="settings-service-heading">
+                <h3>Lucida</h3>
+                <strong id="lucida-status" class="service-status">Checking…</strong>
+              </div>
+              <p>External AI background removal using the Lucida CLI and model.</p>
+              <code>services.inklathe.lucidaCommand</code>
+              <div class="settings-service-actions">
+                <button id="lucida-install" class="preset-button" type="button">Copy setup config</button>
+                <button id="lucida-remove" class="preset-button danger" type="button">Copy remove config</button>
+              </div>
+            </section>
+          </div>
         </div>
         <p id="settings-worker-note" class="settings-note"></p>
         <div class="settings-actions">
-          <span>Change NixOS settings, rebuild the server, then check again.</span>
+          <span>Apply the copied NixOS configuration on the server, then check again.</span>
           <div class="settings-buttons">
-            <button id="settings-copy" class="preset-button" type="button">Copy install config</button>
-            <button id="settings-remove" class="preset-button danger" type="button">Copy uninstall config</button>
             <button id="settings-recheck" class="preset-button" type="button">Check again</button>
           </div>
         </div>
         <p class="settings-footnote">
-          Uninstall configuration disconnects both AI workers. It never removes uploads,
-          results, masks, favorites, or the InkLathe application.
+          Remove configuration disconnects only the selected optional engine. It never
+          removes uploads, results, masks, favorites, or InkLathe itself.
         </p>
       </div>
     </dialog>

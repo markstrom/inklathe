@@ -36,8 +36,10 @@ const settingsOpen = document.querySelector("#settings-open");
 const settingsDialog = document.querySelector("#settings-dialog");
 const settingsClose = document.querySelector("#settings-close");
 const settingsRecheck = document.querySelector("#settings-recheck");
-const settingsCopy = document.querySelector("#settings-copy");
-const settingsRemove = document.querySelector("#settings-remove");
+const upscalerInstall = document.querySelector("#upscaler-install");
+const upscalerRemove = document.querySelector("#upscaler-remove");
+const lucidaInstall = document.querySelector("#lucida-install");
+const lucidaRemove = document.querySelector("#lucida-remove");
 const upscalerStatus = document.querySelector("#upscaler-status");
 const lucidaStatus = document.querySelector("#lucida-status");
 const settingsWorkerNote = document.querySelector("#settings-worker-note");
@@ -115,6 +117,7 @@ function loadFavoritePresets() {
 
 let favoritePresets = loadFavoritePresets();
 let capabilitiesReady = false;
+let availableEngines = { ai: false, lucida: false };
 
 function storeFavoritePresets() {
   try {
@@ -134,7 +137,14 @@ function renderFavoritePresets(selectedId = favoritePresetSelect.value) {
   for (const favorite of favoritePresets) {
     const option = document.createElement("option");
     option.value = favorite.id;
-    option.textContent = favorite.name;
+    const unavailable = capabilitiesReady && (
+      (favorite.settings.upscale === "ai" && !availableEngines.ai)
+      || (favorite.settings.background === "lucida" && !availableEngines.lucida)
+    );
+    option.textContent = unavailable
+      ? `${favorite.name} — engine unavailable`
+      : favorite.name;
+    option.disabled = unavailable;
     favoritePresetSelect.append(option);
   }
   favoritePresetSelect.disabled = !capabilitiesReady || favoritePresets.length === 0;
@@ -746,6 +756,24 @@ const textureSelect = document.querySelector("#texture");
 const halftoneSelect = document.querySelector("#halftone");
 const upscaleSelect = document.querySelector("#upscale");
 const scaleSelect = document.querySelector("#scale");
+const backgroundSelect = document.querySelector("#background");
+const aiOption = document.querySelector("#ai-option");
+const lucidaOption = document.querySelector("#lucida-option");
+
+function setEngineOption(select, option, available, fallback) {
+  if (available) {
+    option.hidden = false;
+    option.disabled = false;
+    if (!option.isConnected) {
+      select.insertBefore(option, select.querySelector('option[value="none"]'));
+    }
+    return;
+  }
+  if (select.value === option.value) select.value = fallback;
+  option.hidden = true;
+  option.disabled = true;
+  option.remove();
+}
 
 function syncUpscaleControls() {
   const disabled = upscaleSelect.value === "none";
@@ -789,10 +817,9 @@ async function copySettingsTemplate(button, template) {
   setTimeout(() => { button.textContent = originalLabel; }, 1600);
 }
 
-settingsCopy.addEventListener("click", () => {
+upscalerInstall.addEventListener("click", () => {
   const template = `# Add these lines to the existing services.inklathe block.
 services.inklathe = {
-  lucidaCommand = "/opt/lucida/.venv/bin/bgr";
   realEsrganBinary = "/opt/realesrgan/realesrgan-ncnn-vulkan";
   realEsrganModelDir = "/opt/realesrgan/models";
   realEsrganModel = "realesrgan-x4plus";
@@ -800,24 +827,43 @@ services.inklathe = {
 
 # Then apply it from SSH:
 sudo nixos-rebuild switch --flake /etc/nixos#server`;
-  copySettingsTemplate(settingsCopy, template);
+  copySettingsTemplate(upscalerInstall, template);
 });
-settingsRemove.addEventListener("click", () => {
-  const template = `# Remove the AI option lines from the existing services.inklathe block,
-# or set the optional command paths to null:
+upscalerRemove.addEventListener("click", () => {
+  const template = `# Disconnect only the optional Real-ESRGAN engine.
 services.inklathe = {
   aiUpscalerCommand = null;
   realEsrganBinary = null;
   realEsrganModelDir = null;
+};
+
+# Then apply it from SSH:
+sudo nixos-rebuild switch --flake /etc/nixos#server
+
+# This does not delete InkLathe data or externally installed model files.`;
+  copySettingsTemplate(upscalerRemove, template);
+});
+lucidaInstall.addEventListener("click", () => {
+  const template = `# Add this line to the existing services.inklathe block.
+services.inklathe = {
+  lucidaCommand = "/opt/lucida/.venv/bin/bgr";
+};
+
+# Then apply it from SSH:
+sudo nixos-rebuild switch --flake /etc/nixos#server`;
+  copySettingsTemplate(lucidaInstall, template);
+});
+lucidaRemove.addEventListener("click", () => {
+  const template = `# Disconnect only the optional Lucida engine.
+services.inklathe = {
   lucidaCommand = null;
 };
 
 # Then apply it from SSH:
 sudo nixos-rebuild switch --flake /etc/nixos#server
 
-# This disconnects the workers without deleting InkLathe data.
-# Remove externally installed AI files separately only after verifying their paths.`;
-  copySettingsTemplate(settingsRemove, template);
+# This does not delete InkLathe data or externally installed model files.`;
+  copySettingsTemplate(lucidaRemove, template);
 });
 settingsRecheck.addEventListener("click", async () => {
   settingsRecheck.disabled = true;
@@ -886,7 +932,7 @@ for (const eventName of ["dragleave", "drop"]) {
 dropZone.addEventListener("drop", (event) => addRecentSources([...event.dataTransfer.files]));
 
 function updateServiceStatus(element, configured) {
-  element.textContent = configured ? "Configured" : "Not configured";
+  element.textContent = configured ? "Available" : "Not available";
   element.classList.toggle("ready", configured);
   element.classList.toggle("missing", !configured);
 }
@@ -896,23 +942,20 @@ async function loadCapabilities({ refresh = false } = {}) {
   if (!response.ok) throw new Error("Could not read server capabilities");
   const health = await response.json();
   maxImagePixels = Number(health.max_image_pixels) || null;
-  const lucida = document.querySelector("#lucida-option");
-  const ai = document.querySelector("#ai-option");
-  lucida.disabled = !health.capabilities.lucida;
-  ai.disabled = !health.capabilities.ai_upscaler;
-  if (ai.disabled && form.elements.namedItem("upscale").value === "ai") {
-    form.elements.namedItem("upscale").value = "lanczos";
-  }
+  availableEngines = {
+    ai: Boolean(health.capabilities.ai_upscaler),
+    lucida: Boolean(health.capabilities.lucida),
+  };
+  setEngineOption(upscaleSelect, aiOption, availableEngines.ai, "lanczos");
+  setEngineOption(backgroundSelect, lucidaOption, availableEngines.lucida, "threshold");
   syncUpscaleControls();
-  if (lucida.disabled && form.elements.namedItem("background").value === "lucida") {
-    form.elements.namedItem("background").value = "threshold";
-  }
-  lucida.textContent = `Lucida AI — ${lucida.disabled ? "not configured" : "configured"}`;
-  ai.textContent = `AI model — ${ai.disabled ? "not configured" : "configured"}`;
-  updateServiceStatus(upscalerStatus, health.capabilities.ai_upscaler);
-  updateServiceStatus(lucidaStatus, health.capabilities.lucida);
+  updateServiceStatus(upscalerStatus, availableEngines.ai);
+  updateServiceStatus(lucidaStatus, availableEngines.lucida);
   settingsWorkerNote.textContent = `${health.workers} image worker · submitted runs are processed in FIFO order.`;
-  if (refresh) return health;
+  if (refresh) {
+    renderFavoritePresets();
+    return health;
+  }
   const halftones = health.capabilities.halftones || [];
   const halftoneGroups = new Map();
   for (const treatment of halftones) {

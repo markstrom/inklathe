@@ -5,8 +5,8 @@
 `restore / isolate / upscale / distress`
 
 InkLathe is a self-hosted image workshop for preparing black-and-white logos,
-illustrations, and print artwork. The built-in workflow runs locally. Optional AI
-workers can be installed separately on the same server.
+illustrations, and print artwork. The built-in workflow runs locally. Optional processing
+engines can be installed separately on the same server.
 
 ![InkLathe showing two source images and four Worn results made with different scanned wear masks](assets/screenshots/inklathe-wear-showcase.png)
 
@@ -66,25 +66,28 @@ INKLATHE_DATA_DIR=./data .venv/bin/inklathe
 Open <http://127.0.0.1:8787>.
 
 The normal installation does **not** install Lucida, an AI upscaler, PyTorch, model
-weights, or GPU drivers. Without external workers, use `Lanczos preview` and
+weights, or GPU drivers. Without optional engines, use `Lanczos preview` and
 `Monochrome cutout`; both are fully functional local implementations.
 
-## Optional AI workers
+## Processing engines
 
-InkLathe runs optional workers as child processes. Configure commands with environment
+InkLathe runs optional engines as child processes. Configure commands with environment
 variables before starting InkLathe. Use absolute paths when running it as a service.
 
-The interface reports an option as `configured` when its environment variable is set.
+The `Engines` dialog lists the built-in engines and the optional engine catalog. Optional
+engines only appear in the main processing dropdowns when the server reports them as
+available. The interface reports an engine as `Available` when its environment variable
+is set.
 This is not a live model-health check: an invalid executable or missing weight file is
 reported when a job tries to use it.
 
-Open `AI setup` in the web interface to see the current configuration and recheck it
+Open `Engines` in the web interface to see the current configuration and recheck it
 after a server rebuild. For safety, the page cannot install packages or change executable
 paths: those operations remain part of the administrator-controlled NixOS configuration.
-The dialog can copy matching install and uninstall configuration. The uninstall version
-disconnects optional AI workers but deliberately leaves InkLathe uploads, results, masks,
-favorites, and application files untouched. Externally installed model directories should
-only be removed separately after their actual server paths have been verified.
+Each optional engine has its own setup and remove configuration. Removing one disconnects
+only that engine and deliberately leaves InkLathe uploads, results, masks, favorites, and
+application files untouched. Externally installed model directories should only be removed
+separately after their actual server paths have been verified.
 
 ### Background removal: Lucida
 

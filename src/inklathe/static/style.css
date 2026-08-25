@@ -167,7 +167,7 @@ dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
 .favorite-editor h2 { margin: 0; font: 800 1rem Arial, sans-serif; text-transform: uppercase; }
 .favorite-dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
 .favorite-dialog-actions button { min-height: 38px; }
-.settings-dialog { width: min(92vw, 760px); }
+.settings-dialog { width: min(92vw, 860px); }
 .settings-panel { display: grid; gap: 18px; padding: 22px; }
 .settings-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .settings-heading .eyebrow { margin: 0 0 5px; }
@@ -175,11 +175,15 @@ dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
 .settings-intro, .settings-service p, .settings-note, .settings-actions span { margin: 0; color: var(--muted); font-size: .72rem; }
 .settings-footnote { margin: -8px 0 0; color: var(--muted-faint); font-size: .64rem; }
 .settings-link { display: inline-block; margin-left: .35em; color: var(--acid); }
+.settings-engine-group { display: grid; gap: 8px; }
+.settings-engine-label { margin: 0; color: var(--muted-dim); font: 800 .65rem Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
 .settings-services { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .settings-service { display: grid; align-content: start; gap: 10px; padding: 14px; border: 1px solid var(--line); background: var(--surface-elevated); }
 .settings-service-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .settings-service h3 { margin: 0; font: 800 .82rem Arial, sans-serif; text-transform: uppercase; }
 .settings-service code { overflow-wrap: anywhere; color: var(--paper); font-size: .68rem; }
+.settings-service-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.settings-service-actions .preset-button { flex: 1 1 130px; }
 .service-status { padding: 4px 6px; border: 1px solid var(--line); color: var(--muted); font: 800 .58rem Arial, sans-serif; text-transform: uppercase; white-space: nowrap; }
 .service-status.ready { border-color: var(--acid); color: var(--acid); }
 .service-status.missing { border-color: var(--rust); color: var(--rust); }
