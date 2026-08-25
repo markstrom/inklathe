@@ -229,6 +229,13 @@ function formatBytes(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+function sourceMetadata(source) {
+  const dimensions = source.width && source.height
+    ? `${source.width}×${source.height} px · `
+    : "";
+  return `${dimensions}${formatBytes(source.file.size)}`;
+}
+
 function wearDescription(value) {
   return {
     25: "subtle",
@@ -374,7 +381,7 @@ function renderRecentSources() {
 
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "source-remove";
+    remove.className = "card-icon danger";
     remove.disabled = false;
     remove.title = `Remove ${source.file.name} from recent images (Alt-click to skip confirmation)`;
     remove.setAttribute("aria-label", `Remove ${source.file.name} from recent images`);
@@ -386,8 +393,28 @@ function renderRecentSources() {
     remove.addEventListener("click", (event) => removeRecentSource(source.id, event.altKey));
 
     const caption = document.createElement("figcaption");
-    caption.textContent = source.file.name;
-    figure.append(select, remove, caption);
+    const captionHeading = document.createElement("div");
+    captionHeading.className = "caption-heading";
+    const captionName = document.createElement("strong");
+    captionName.textContent = source.file.name;
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+    actions.append(remove);
+    captionHeading.append(captionName, actions);
+
+    const metadata = document.createElement("span");
+    metadata.textContent = sourceMetadata(source);
+    caption.append(captionHeading, metadata);
+
+    const updateDimensions = () => {
+      source.width = image.naturalWidth;
+      source.height = image.naturalHeight;
+      metadata.textContent = sourceMetadata(source);
+    };
+    if (image.complete && image.naturalWidth) updateDimensions();
+    else image.addEventListener("load", updateDimensions, { once: true });
+
+    figure.append(select, caption);
     inputPreview.append(figure);
   }
   inputPreview.append(recentPlaceholder);

@@ -13,6 +13,7 @@ workers can be installed separately on the same server.
 ## Current features
 
 - Process one image or a selected batch from a five-image source tray
+- Show source filenames, pixel dimensions, and file sizes in cards matching the results
 - Use built-in Lanczos scaling or an optional external AI upscaler
 - Keep the source background, make a monochrome cutout, or use optional Lucida AI
 - Screen isolated ink through scanned halftone or engraved patterns
