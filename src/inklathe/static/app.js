@@ -23,6 +23,69 @@ const previewNext = document.querySelector("#preview-next");
 const previewDownload = document.querySelector("#preview-download");
 const previewDelete = document.querySelector("#preview-delete");
 const previewCompare = document.querySelector("#preview-compare");
+const themeToggle = document.querySelector("#theme-toggle");
+const canvasToggle = document.querySelector("#canvas-toggle");
+
+const themeModes = ["auto", "light", "dark"];
+const canvasModes = ["grid", "light", "dark"];
+
+function savedMode(key, modes, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return modes.includes(value) ? value : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+function saveMode(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_) {
+    // Display controls still work for the current page when storage is unavailable.
+  }
+}
+
+let themeMode = savedMode("inklathe-theme", themeModes, "auto");
+let canvasMode = savedMode("inklathe-canvas", canvasModes, "grid");
+
+function modeLabel(value) {
+  return value[0].toUpperCase() + value.slice(1);
+}
+
+function applyThemeMode() {
+  if (themeMode === "auto") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = themeMode;
+  themeToggle.textContent = `Theme: ${modeLabel(themeMode)}`;
+  themeToggle.title = "Switch between automatic, light, and dark themes";
+  themeToggle.setAttribute("aria-label", `Theme: ${themeMode}. Change theme`);
+}
+
+function applyCanvasMode() {
+  document.documentElement.dataset.canvas = canvasMode;
+  canvasToggle.textContent = `Canvas: ${modeLabel(canvasMode)}`;
+  canvasToggle.title = "Change the preview background without changing image files";
+  canvasToggle.setAttribute("aria-label", `Preview canvas: ${canvasMode}. Change preview canvas`);
+}
+
+function nextMode(current, modes) {
+  return modes[(modes.indexOf(current) + 1) % modes.length];
+}
+
+themeToggle.addEventListener("click", () => {
+  themeMode = nextMode(themeMode, themeModes);
+  saveMode("inklathe-theme", themeMode);
+  applyThemeMode();
+});
+
+canvasToggle.addEventListener("click", () => {
+  canvasMode = nextMode(canvasMode, canvasModes);
+  saveMode("inklathe-canvas", canvasMode);
+  applyCanvasMode();
+});
+
+applyThemeMode();
+applyCanvasMode();
 
 let recentSources = [];
 let selectedSourceIds = new Set();

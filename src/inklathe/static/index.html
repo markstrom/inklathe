@@ -4,12 +4,30 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>InkLathe</title>
+    <script>
+      (() => {
+        try {
+          const theme = localStorage.getItem("inklathe-theme");
+          if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
+          const canvas = localStorage.getItem("inklathe-canvas");
+          if (["grid", "light", "dark"].includes(canvas)) document.documentElement.dataset.canvas = canvas;
+        } catch (_) {
+          // System theme and the grid canvas remain safe defaults when storage is unavailable.
+        }
+      })();
+    </script>
     <link rel="stylesheet" href="/static/style.css">
   </head>
   <body>
     <main>
       <header>
-        <p class="eyebrow">SELF-HOSTED IMAGE WORKSHOP</p>
+        <div class="header-top">
+          <p class="eyebrow">SELF-HOSTED IMAGE WORKSHOP</p>
+          <div class="display-controls" aria-label="Display settings">
+            <button id="theme-toggle" class="utility-button" type="button">Theme: Auto</button>
+            <button id="canvas-toggle" class="utility-button" type="button">Canvas: Grid</button>
+          </div>
+        </div>
         <h1 class="ascii-logo" aria-label="InkLathe"><span aria-hidden="true">██╗███╗   ██╗██╗  ██╗██╗      █████╗ ████████╗██╗  ██╗███████╗
 ██║████╗  ██║██║ ██╔╝██║     ██╔══██╗╚══██╔══╝██║  ██║██╔════╝
 ██║██╔██╗ ██║█████╔╝ ██║     ███████║   ██║   ███████║█████╗
