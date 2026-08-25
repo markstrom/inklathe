@@ -23,7 +23,6 @@ def test_app_shell_is_english(tmp_path) -> None:
     assert '<html lang="en">' in response.text
     assert 'class="ascii-logo" aria-label="InkLathe"' in response.text
     assert 'id="theme-toggle"' in response.text
-    assert 'id="canvas-toggle"' in response.text
     assert "Drop images" in response.text
     assert ">Process</button>" in response.text
     assert '<option value="vintage-tee">Vintage tee</option>' in response.text

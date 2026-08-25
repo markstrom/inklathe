@@ -16,8 +16,8 @@
   --shadow: #080808;
   --hover: #23251b;
   --control-overlay: rgba(17,17,17,.9);
-  --preview-a: #ddd;
-  --preview-b: #fff;
+  --checker-a: #ddd;
+  --checker-b: #fff;
 }
 
 :root[data-theme="light"] {
@@ -61,9 +61,6 @@
     --control-overlay: rgba(250,248,242,.94);
   }
 }
-
-:root[data-canvas="light"] { --preview-a: #fff; --preview-b: #fff; }
-:root[data-canvas="dark"] { --preview-a: #151515; --preview-b: #151515; }
 
 * { box-sizing: border-box; }
 body {
@@ -113,7 +110,7 @@ form, .status, .results { border: 1px solid var(--line); background: var(--surfa
 .source-preview.selected { border-color: var(--acid); box-shadow: inset 0 0 0 1px var(--acid); }
 .source-preview.processing { box-shadow: 0 0 0 2px var(--acid); }
 .source-select { position: relative; display: block; width: 100%; padding: 0; background: transparent; color: inherit; }
-.source-select img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--preview-a) 0 25%, var(--preview-b) 0 50%) 0/20px 20px; }
+.source-select img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0/20px 20px; }
 .source-selected { position: absolute; top: 6px; left: 6px; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid #111; background: var(--acid); color: var(--on-acid); font: 900 .8rem Arial, sans-serif; }
 .source-remove { position: absolute; z-index: 2; top: 6px; right: 6px; display: grid; width: 28px; height: 28px; padding: 0; place-items: center; border: 1px solid var(--line); background: var(--control-overlay); color: var(--paper); }
 .source-remove:hover { border-color: var(--rust); color: var(--rust); }
@@ -134,7 +131,7 @@ button:disabled { opacity: .45; cursor: wait; }
 .preview { margin: 0; border: 1px solid var(--line); background: var(--surface-elevated); }
 .preview-open { display: block; width: 100%; padding: 0; background: transparent; color: inherit; }
 .preview-open:hover img { filter: brightness(.78); }
-.preview img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--preview-a) 0 25%, var(--preview-b) 0 50%) 0/20px 20px; }
+.preview img { display: block; width: 100%; aspect-ratio: 1; object-fit: contain; background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0/20px 20px; }
 .result-pending { display: grid; width: 100%; aspect-ratio: 1; place-content: center; place-items: center; gap: 14px; background: repeating-conic-gradient(#1b1b19 0 25%, #20201e 0 50%) 0/20px 20px; color: var(--acid); }
 .result-pending strong { font: 800 .72rem Arial, sans-serif; letter-spacing: .08em; text-transform: uppercase; }
 .result-spinner { width: 38px; height: 38px; border: 3px solid #4d4d46; border-top-color: var(--acid); border-radius: 50%; animation: result-spin .8s linear infinite; }
@@ -157,7 +154,7 @@ button:disabled { opacity: .45; cursor: wait; }
 .result-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
 dialog { width: min(94vw, 1100px); max-height: 92vh; padding: 0; border: 1px solid var(--line); background: var(--surface-solid); color: var(--paper); box-shadow: 18px 18px 0 rgba(0,0,0,.35); }
 dialog::backdrop { background: rgba(0,0,0,.82); backdrop-filter: blur(4px); }
-.preview-zoom { --zoom-x: 50%; --zoom-y: 50%; --lens-x: 50%; --lens-y: 50%; --lens-radius: 90px; position: relative; display: grid; width: 100%; height: min(860px, calc(92vh - 48px)); min-height: min(320px, calc(100vh - 48px)); padding: 0; place-items: center; overflow: hidden; background: repeating-conic-gradient(var(--preview-a) 0 25%, var(--preview-b) 0 50%) 0/24px 24px; cursor: zoom-in; }
+.preview-zoom { --zoom-x: 50%; --zoom-y: 50%; --lens-x: 50%; --lens-y: 50%; --lens-radius: 90px; position: relative; display: grid; width: 100%; height: min(860px, calc(92vh - 48px)); min-height: min(320px, calc(100vh - 48px)); padding: 0; place-items: center; overflow: hidden; background: repeating-conic-gradient(var(--checker-a) 0 25%, var(--checker-b) 0 50%) 0/24px 24px; cursor: zoom-in; }
 .preview-result, .comparison-lens img { display: block; width: 100%; height: 100%; object-fit: contain; transform-origin: var(--zoom-x) var(--zoom-y); transition: transform .18s ease; }
 .preview-result { position: absolute; inset: 0; max-height: none; }
 .comparison-lens { position: absolute; inset: 0; overflow: hidden; opacity: 0; clip-path: circle(var(--lens-radius) at var(--lens-x) var(--lens-y)); pointer-events: none; }

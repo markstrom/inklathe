@@ -24,10 +24,8 @@ const previewDownload = document.querySelector("#preview-download");
 const previewDelete = document.querySelector("#preview-delete");
 const previewCompare = document.querySelector("#preview-compare");
 const themeToggle = document.querySelector("#theme-toggle");
-const canvasToggle = document.querySelector("#canvas-toggle");
 
 const themeModes = ["auto", "light", "dark"];
-const canvasModes = ["grid", "light", "dark"];
 
 function savedMode(key, modes, fallback) {
   try {
@@ -47,7 +45,6 @@ function saveMode(key, value) {
 }
 
 let themeMode = savedMode("inklathe-theme", themeModes, "auto");
-let canvasMode = savedMode("inklathe-canvas", canvasModes, "grid");
 
 function modeLabel(value) {
   return value[0].toUpperCase() + value.slice(1);
@@ -61,13 +58,6 @@ function applyThemeMode() {
   themeToggle.setAttribute("aria-label", `Theme: ${themeMode}. Change theme`);
 }
 
-function applyCanvasMode() {
-  document.documentElement.dataset.canvas = canvasMode;
-  canvasToggle.textContent = `Canvas: ${modeLabel(canvasMode)}`;
-  canvasToggle.title = "Change the preview background without changing image files";
-  canvasToggle.setAttribute("aria-label", `Preview canvas: ${canvasMode}. Change preview canvas`);
-}
-
 function nextMode(current, modes) {
   return modes[(modes.indexOf(current) + 1) % modes.length];
 }
@@ -78,14 +68,7 @@ themeToggle.addEventListener("click", () => {
   applyThemeMode();
 });
 
-canvasToggle.addEventListener("click", () => {
-  canvasMode = nextMode(canvasMode, canvasModes);
-  saveMode("inklathe-canvas", canvasMode);
-  applyCanvasMode();
-});
-
 applyThemeMode();
-applyCanvasMode();
 
 let recentSources = [];
 let selectedSourceIds = new Set();

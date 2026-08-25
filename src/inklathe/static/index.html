@@ -9,10 +9,8 @@
         try {
           const theme = localStorage.getItem("inklathe-theme");
           if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme;
-          const canvas = localStorage.getItem("inklathe-canvas");
-          if (["grid", "light", "dark"].includes(canvas)) document.documentElement.dataset.canvas = canvas;
         } catch (_) {
-          // System theme and the grid canvas remain safe defaults when storage is unavailable.
+          // The system theme remains a safe default when storage is unavailable.
         }
       })();
     </script>
@@ -25,7 +23,6 @@
           <p class="eyebrow">SELF-HOSTED IMAGE WORKSHOP</p>
           <div class="display-controls" aria-label="Display settings">
             <button id="theme-toggle" class="utility-button" type="button">Theme: Auto</button>
-            <button id="canvas-toggle" class="utility-button" type="button">Canvas: Grid</button>
           </div>
         </div>
         <h1 class="ascii-logo" aria-label="InkLathe"><span aria-hidden="true">██╗███╗   ██╗██╗  ██╗██╗      █████╗ ████████╗██╗  ██╗███████╗
