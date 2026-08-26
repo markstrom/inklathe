@@ -708,7 +708,6 @@ function setPreviewZoom(zoomed) {
   previewZoom.classList.toggle("zoomed", zoomed);
   previewZoom.setAttribute("aria-pressed", String(zoomed));
   previewZoom.setAttribute("aria-label", zoomed ? "Zoom out" : "Zoom in");
-  previewZoom.title = zoomed ? "Click to zoom out" : "Click to zoom in";
   if (!zoomed) {
     previewZoom.style.setProperty("--zoom-x", "50%");
     previewZoom.style.setProperty("--zoom-y", "50%");
