@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "textures": [
+    {
+      "id": "scan-g306",
+      "type": "wear",
+      "file": "wear/Grunge_306XL.jpg",
+      "name": "Heavy screen ink",
+      "category": "Screen print",
+      "maximum": 0.12
+    },
+    {
+      "id": "scan-g296",
+      "type": "wear",
+      "file": "wear/Grunge_296XL.jpg",
+      "name": "Vintage screen distress",
+      "category": "Screen print",
+      "maximum": 0.10
+    },
+    {
+      "id": "scan-g307",
+      "type": "wear",
+      "file": "wear/Grunge_307XL.jpg",
+      "name": "Large print crackle",
+      "category": "Screen print",
+      "maximum": 0.12
+    },
+    {
+      "id": "scan-g308",
+      "type": "wear",
+      "file": "wear/Grunge_308XL.jpg",
+      "name": "Vintage ink wear",
+      "category": "Screen print",
+      "maximum": 0.12
+    },
+    {
+      "id": "scan-g297",
+      "type": "wear",
+      "file": "wear/Grunge_297XL.jpg",
+      "name": "Distressed plastisol",
+      "category": "Plastisol",
+      "maximum": 0.10
+    },
+    {
+      "id": "scan-g298",
+      "type": "wear",
+      "file": "wear/Grunge_298XL.jpg",
+      "name": "Vintage washed T-shirt",
+      "category": "Plastisol",
+      "maximum": 0.09
+    },
+    {
+      "id": "scan-g299",
+      "type": "wear",
+      "file": "wear/Grunge_299XL.jpg",
+      "name": "Cracked screen-print ink",
+      "category": "Plastisol",
+      "maximum": 0.09
+    },
+    {
+      "id": "scan-g309",
+      "type": "wear",
+      "file": "wear/Grunge_309XL.jpg",
+      "name": "Fine plastisol fissures",
+      "category": "Plastisol",
+      "maximum": 0.09
+    },
+    {
+      "id": "scan-g310",
+      "type": "wear",
+      "file": "wear/Grunge_310XL.jpg",
+      "name": "Heavy plastisol cracks",
+      "category": "Plastisol",
+      "maximum": 0.11
+    },
+    {
+      "id": "scan-g313",
+      "type": "wear",
+      "file": "wear/Grunge_313XL.jpg",
+      "name": "Large print cracks",
+      "category": "Plastisol",
+      "maximum": 0.12
+    },
+    {
+      "id": "scan-g311",
+      "type": "wear",
+      "file": "wear/Grunge_311XL.jpg",
+      "name": "Medium speckles",
+      "category": "Fine wear",
+      "maximum": 0.10
+    },
+    {
+      "id": "scan-g272",
+      "type": "wear",
+      "file": "wear/Grunge_272XL.jpg",
+      "name": "Weathered ink grain",
+      "category": "Fine wear",
+      "maximum": 0.11
+    },
+    {
+      "id": "scan-g327",
+      "type": "wear",
+      "file": "wear/Grunge_327XL.jpg",
+      "name": "Heavy grunge mask",
+      "category": "Heavy wear",
+      "maximum": 0.15
+    },
+    {
+      "id": "scan-g141",
+      "type": "wear",
+      "file": "wear/Grunge_141XL.jpg",
+      "name": "Detailed cracked paint",
+      "category": "Paint crackle",
+      "maximum": 0.10
+    },
+    {
+      "id": "scan-g197",
+      "type": "wear",
+      "file": "wear/Grunge_197XL.jpg",
+      "name": "Cracked paint on canvas",
+      "category": "Paint crackle",
+      "maximum": 0.10
+    },
+    {
+      "id": "scan-g198",
+      "type": "wear",
+      "file": "wear/Grunge_198XL.jpg",
+      "name": "Dense cracked paint",
+      "category": "Paint crackle",
+      "maximum": 0.12
+    },
+    {
+      "id": "halftone-g289",
+      "type": "halftone",
+      "file": "halftone/Texturelabs_Grunge_289XL.jpg",
+      "name": "Black halftone floodcoat",
+      "category": "Halftone",
+      "invert": true
+    },
+    {
+      "id": "halftone-g290",
+      "type": "halftone",
+      "file": "halftone/Texturelabs_Grunge_290XL.jpg",
+      "name": "Distressed halftone print",
+      "category": "Halftone",
+      "invert": true
+    },
+    {
+      "id": "halftone-g242",
+      "type": "halftone",
+      "file": "halftone/Texturelabs_Grunge_242XL.jpg",
+      "name": "Printed halftone gradient",
+      "category": "Halftone",
+      "invert": true
+    },
+    {
+      "id": "halftone-g283",
+      "type": "halftone",
+      "file": "halftone/Texturelabs_Grunge_283XL.jpg",
+      "name": "Detailed money pattern",
+      "category": "Engraved",
+      "invert": true
+    }
+  ]
+}
