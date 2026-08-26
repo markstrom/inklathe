@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "textures": [
+    {
+      "id": "dry-ink-crackle",
+      "type": "wear",
+      "file": "wear/dry-ink-crackle.jpg",
+      "name": "Dry ink crackle",
+      "category": "Screen print",
+      "maximum": 0.12
+    },
+    {
+      "id": "coarse-dots",
+      "type": "halftone",
+      "file": "halftone/coarse-dots.jpg",
+      "name": "Coarse printed dots",
+      "category": "Halftone",
+      "invert": false
+    }
+  ]
+}
+

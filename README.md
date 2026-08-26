@@ -291,6 +291,10 @@ textures/
     └── your-print-pattern.jpg
 ```
 
+The repository includes a tracked [`textures/`](textures/) scaffold with per-folder
+instructions and an example catalog. Its bitmap ignore rules keep third-party images
+private by default.
+
 `textures.json` is the library catalog and the only place where menu names and mask
 behavior are configured. For example:
 

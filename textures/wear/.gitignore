@@ -1,0 +1,6 @@
+# Keep downloaded or licensed texture images private by default.
+*.jpg
+*.jpeg
+*.png
+*.webp
+
