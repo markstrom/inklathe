@@ -28,6 +28,7 @@ const themeToggle = document.querySelector("#theme-toggle");
 const favoritePresetSelect = document.querySelector("#favorite-preset");
 const saveFavoriteButton = document.querySelector("#save-favorite");
 const deleteFavoriteButton = document.querySelector("#delete-favorite");
+const favoriteStatus = document.querySelector("#favorite-status");
 const favoriteDialog = document.querySelector("#favorite-dialog");
 const favoriteNameInput = document.querySelector("#favorite-name");
 const confirmFavoriteButton = document.querySelector("#confirm-favorite");
@@ -122,9 +123,24 @@ let availableEngines = { ai: false, lucida: false };
 function storeFavoritePresets() {
   try {
     localStorage.setItem(favoriteStorageKey, JSON.stringify(favoritePresets));
+    return true;
   } catch (_) {
     window.alert("The favorite could not be saved in this browser.");
+    return false;
   }
+}
+
+let favoriteStatusTimer = null;
+
+function showFavoriteStatus(message) {
+  if (favoriteStatusTimer !== null) clearTimeout(favoriteStatusTimer);
+  favoriteStatus.textContent = message;
+  favoriteStatus.hidden = false;
+  favoriteStatusTimer = setTimeout(() => {
+    favoriteStatus.hidden = true;
+    favoriteStatus.textContent = "";
+    favoriteStatusTimer = null;
+  }, 2000);
 }
 
 function renderFavoritePresets(selectedId = favoritePresetSelect.value) {
@@ -207,9 +223,10 @@ function saveCurrentFavorite() {
   const existingIndex = favoritePresets.findIndex((item) => item.id === id);
   if (existingIndex >= 0) favoritePresets[existingIndex] = favorite;
   else favoritePresets.push(favorite);
-  storeFavoritePresets();
+  const stored = storeFavoritePresets();
   renderFavoritePresets(id);
   favoriteDialog.close();
+  if (stored) showFavoriteStatus("Saved in this browser");
 }
 
 function deleteCurrentFavorite(skipConfirmation = false) {
